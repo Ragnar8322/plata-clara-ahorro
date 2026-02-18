@@ -1,0 +1,122 @@
+export interface Gasto {
+  id: string;
+  fecha: string;
+  categoria: CategoriaGasto;
+  descripcion: string;
+  monto: number;
+  metodoPago: MetodoPago;
+  tipo: TipoGasto;
+  frecuencia: Frecuencia;
+  notas?: string;
+}
+
+export type CategoriaGasto =
+  | "Vivienda"
+  | "Alimentación"
+  | "Transporte"
+  | "Servicios"
+  | "Salud"
+  | "Entretenimiento"
+  | "Educación"
+  | "Deudas"
+  | "Ahorro"
+  | "Otros";
+
+export type MetodoPago =
+  | "Efectivo"
+  | "Débito"
+  | "Tarjeta de crédito"
+  | "Transferencia"
+  | "Otro";
+
+export type TipoGasto = "Fijo" | "Variable";
+
+export type Frecuencia = "Único" | "Mensual" | "Semanal" | "Anual";
+
+export interface Deuda {
+  id: string;
+  nombre: string;
+  tipo: TipoDeuda;
+  entidad: string;
+  saldoInicial: number;
+  saldoActual: number;
+  tasaInteresAnual: number;
+  pagoMinimoMensual: number;
+  diaCorteOPago: number;
+  pagoExtraPlaneadoMensual: number;
+  activa: boolean;
+  notas?: string;
+}
+
+export type TipoDeuda =
+  | "Tarjeta de crédito"
+  | "Crédito personal"
+  | "Crédito vehículo"
+  | "Hipoteca"
+  | "Otro";
+
+export type EstrategiaOrden = "SaldoAscendente" | "InteresDescendente";
+
+export interface Configuracion {
+  id: string;
+  ingresoMensualNeto: number;
+  monedaSimbolo: string;
+  nombreMoneda: string;
+  presupuestoMensualParaDeudas: number;
+  mesesMaxProyeccion: number;
+  estrategiaOrdenDeudas: EstrategiaOrden;
+}
+
+export const CATEGORIAS_GASTO: CategoriaGasto[] = [
+  "Vivienda", "Alimentación", "Transporte", "Servicios", "Salud",
+  "Entretenimiento", "Educación", "Deudas", "Ahorro", "Otros",
+];
+
+export const METODOS_PAGO: MetodoPago[] = [
+  "Efectivo", "Débito", "Tarjeta de crédito", "Transferencia", "Otro",
+];
+
+export const TIPOS_GASTO: TipoGasto[] = ["Fijo", "Variable"];
+
+export const FRECUENCIAS: Frecuencia[] = ["Único", "Mensual", "Semanal", "Anual"];
+
+export const TIPOS_DEUDA: TipoDeuda[] = [
+  "Tarjeta de crédito", "Crédito personal", "Crédito vehículo", "Hipoteca", "Otro",
+];
+
+// Snowball simulation result types
+export interface PagoMensualDeuda {
+  deudaId: string;
+  nombreDeuda: string;
+  pagoTotal: number;
+  abonoInteres: number;
+  abonoCapital: number;
+  saldoFinal: number;
+  pagada: boolean;
+}
+
+export interface MesSimulado {
+  mesNumero: number;
+  fecha: string; // "YYYY-MM"
+  pagos: PagoMensualDeuda[];
+}
+
+export interface ResumenDeudaProyeccion {
+  prioridad: number;
+  deudaId: string;
+  nombreDeuda: string;
+  saldoInicialSimulacion: number;
+  tasaInteresAnual: number;
+  pagoMinimoMensual: number;
+  mesEstimadoPago: number | null; // null if not paid within range
+  fechaEstimadaPago: string | null;
+}
+
+export interface ResultadoSimulacion {
+  ordenPago: ResumenDeudaProyeccion[];
+  calendario: MesSimulado[];
+  mesLibreDeDeudas: number | null;
+  fechaLibreDeDeudas: string | null;
+  totalInteresesPagados: number;
+  mesesSimulados: number;
+}
