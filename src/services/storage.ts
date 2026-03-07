@@ -1,13 +1,178 @@
-import { Gasto, Deuda, Configuracion } from "@/types";
+import { Gasto, Deuda, Configuracion, EstrategiaOrden } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
 
-const KEYS = {
-  gastos: "finapp_gastos",
-  deudas: "finapp_deudas",
-  configuracion: "finapp_configuracion",
-};
+// ─── Gastos ───
+
+export async function loadGastos(): Promise<Gasto[]> {
+  const { data, error } = await supabase
+    .from("gastos")
+    .select("*")
+    .order("fecha", { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    fecha: row.fecha,
+    categoria: row.categoria as Gasto["categoria"],
+    descripcion: row.descripcion,
+    monto: Number(row.monto),
+    metodoPago: row.metodo_pago as Gasto["metodoPago"],
+    tipo: row.tipo as Gasto["tipo"],
+    frecuencia: row.frecuencia as Gasto["frecuencia"],
+    notas: row.notas ?? undefined,
+  }));
+}
+
+export async function saveGasto(gasto: Omit<Gasto, "id">, userId: string): Promise<Gasto> {
+  const { data, error } = await supabase
+    .from("gastos")
+    .insert({
+      user_id: userId,
+      fecha: gasto.fecha,
+      categoria: gasto.categoria,
+      descripcion: gasto.descripcion,
+      monto: gasto.monto,
+      metodo_pago: gasto.metodoPago,
+      tipo: gasto.tipo,
+      frecuencia: gasto.frecuencia,
+      notas: gasto.notas ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    fecha: data.fecha,
+    categoria: data.categoria as Gasto["categoria"],
+    descripcion: data.descripcion,
+    monto: Number(data.monto),
+    metodoPago: data.metodo_pago as Gasto["metodoPago"],
+    tipo: data.tipo as Gasto["tipo"],
+    frecuencia: data.frecuencia as Gasto["frecuencia"],
+    notas: data.notas ?? undefined,
+  };
+}
+
+export async function updateGasto(gasto: Gasto): Promise<void> {
+  const { error } = await supabase
+    .from("gastos")
+    .update({
+      fecha: gasto.fecha,
+      categoria: gasto.categoria,
+      descripcion: gasto.descripcion,
+      monto: gasto.monto,
+      metodo_pago: gasto.metodoPago,
+      tipo: gasto.tipo,
+      frecuencia: gasto.frecuencia,
+      notas: gasto.notas ?? null,
+    })
+    .eq("id", gasto.id);
+
+  if (error) throw error;
+}
+
+export async function deleteGasto(id: string): Promise<void> {
+  const { error } = await supabase.from("gastos").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Deudas ───
+
+export async function loadDeudas(): Promise<Deuda[]> {
+  const { data, error } = await supabase
+    .from("deudas")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    nombre: row.nombre,
+    tipo: row.tipo as Deuda["tipo"],
+    entidad: row.entidad,
+    saldoInicial: Number(row.saldo_inicial),
+    saldoActual: Number(row.saldo_actual),
+    tasaInteresAnual: Number(row.tasa_interes_anual),
+    pagoMinimoMensual: Number(row.pago_minimo_mensual),
+    diaCorteOPago: row.dia_corte_o_pago,
+    pagoExtraPlaneadoMensual: Number(row.pago_extra_planeado_mensual),
+    activa: row.activa,
+    notas: row.notas ?? undefined,
+  }));
+}
+
+export async function saveDeuda(deuda: Omit<Deuda, "id">, userId: string): Promise<Deuda> {
+  const { data, error } = await supabase
+    .from("deudas")
+    .insert({
+      user_id: userId,
+      nombre: deuda.nombre,
+      tipo: deuda.tipo,
+      entidad: deuda.entidad,
+      saldo_inicial: deuda.saldoInicial,
+      saldo_actual: deuda.saldoActual,
+      tasa_interes_anual: deuda.tasaInteresAnual,
+      pago_minimo_mensual: deuda.pagoMinimoMensual,
+      dia_corte_o_pago: deuda.diaCorteOPago,
+      pago_extra_planeado_mensual: deuda.pagoExtraPlaneadoMensual,
+      activa: deuda.activa,
+      notas: deuda.notas ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  return {
+    id: data.id,
+    nombre: data.nombre,
+    tipo: data.tipo as Deuda["tipo"],
+    entidad: data.entidad,
+    saldoInicial: Number(data.saldo_inicial),
+    saldoActual: Number(data.saldo_actual),
+    tasaInteresAnual: Number(data.tasa_interes_anual),
+    pagoMinimoMensual: Number(data.pago_minimo_mensual),
+    diaCorteOPago: data.dia_corte_o_pago,
+    pagoExtraPlaneadoMensual: Number(data.pago_extra_planeado_mensual),
+    activa: data.activa,
+    notas: data.notas ?? undefined,
+  };
+}
+
+export async function updateDeuda(deuda: Deuda): Promise<void> {
+  const { error } = await supabase
+    .from("deudas")
+    .update({
+      nombre: deuda.nombre,
+      tipo: deuda.tipo,
+      entidad: deuda.entidad,
+      saldo_inicial: deuda.saldoInicial,
+      saldo_actual: deuda.saldoActual,
+      tasa_interes_anual: deuda.tasaInteresAnual,
+      pago_minimo_mensual: deuda.pagoMinimoMensual,
+      dia_corte_o_pago: deuda.diaCorteOPago,
+      pago_extra_planeado_mensual: deuda.pagoExtraPlaneadoMensual,
+      activa: deuda.activa,
+      notas: deuda.notas ?? null,
+    })
+    .eq("id", deuda.id);
+
+  if (error) throw error;
+}
+
+export async function deleteDeuda(id: string): Promise<void> {
+  const { error } = await supabase.from("deudas").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Configuración ───
 
 const defaultConfig: Configuracion = {
-  id: "config-principal",
+  id: "default",
   ingresoMensualNeto: 0,
   monedaSimbolo: "$",
   nombreMoneda: "COP",
@@ -16,136 +181,52 @@ const defaultConfig: Configuracion = {
   estrategiaOrdenDeudas: "SaldoAscendente",
 };
 
-function generateId(): string {
-  return crypto.randomUUID();
+export async function loadConfiguracion(): Promise<Configuracion> {
+  const { data, error } = await supabase
+    .from("configuracion")
+    .select("*")
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) return defaultConfig;
+
+  return {
+    id: data.id,
+    ingresoMensualNeto: Number(data.ingreso_mensual_neto),
+    monedaSimbolo: data.moneda_simbolo,
+    nombreMoneda: data.nombre_moneda,
+    presupuestoMensualParaDeudas: Number(data.presupuesto_mensual_para_deudas),
+    mesesMaxProyeccion: data.meses_max_proyeccion,
+    estrategiaOrdenDeudas: data.estrategia_orden_deudas as EstrategiaOrden,
+  };
 }
 
-// Seed data
-const seedGastos: Gasto[] = [
-  {
-    id: generateId(),
-    fecha: new Date().toISOString().split("T")[0],
-    categoria: "Vivienda",
-    descripcion: "Arriendo apartamento",
-    monto: 1200000,
-    metodoPago: "Transferencia",
-    tipo: "Fijo",
-    frecuencia: "Mensual",
-  },
-  {
-    id: generateId(),
-    fecha: new Date().toISOString().split("T")[0],
-    categoria: "Alimentación",
-    descripcion: "Mercado semanal",
-    monto: 250000,
-    metodoPago: "Débito",
-    tipo: "Variable",
-    frecuencia: "Semanal",
-  },
-  {
-    id: generateId(),
-    fecha: new Date().toISOString().split("T")[0],
-    categoria: "Transporte",
-    descripcion: "Gasolina",
-    monto: 180000,
-    metodoPago: "Tarjeta de crédito",
-    tipo: "Variable",
-    frecuencia: "Mensual",
-  },
-];
+export async function saveConfiguracion(config: Configuracion, userId: string): Promise<Configuracion> {
+  const { data, error } = await supabase
+    .from("configuracion")
+    .upsert({
+      id: config.id === "default" ? undefined : config.id,
+      user_id: userId,
+      ingreso_mensual_neto: config.ingresoMensualNeto,
+      moneda_simbolo: config.monedaSimbolo,
+      nombre_moneda: config.nombreMoneda,
+      presupuesto_mensual_para_deudas: config.presupuestoMensualParaDeudas,
+      meses_max_proyeccion: config.mesesMaxProyeccion,
+      estrategia_orden_deudas: config.estrategiaOrdenDeudas,
+    }, { onConflict: "user_id" })
+    .select()
+    .single();
 
-const seedDeudas: Deuda[] = [
-  {
-    id: generateId(),
-    nombre: "Tarjeta Crédito Banco Bogotá",
-    tipo: "Tarjeta de crédito",
-    entidad: "Banco de Bogotá",
-    saldoInicial: 3500000,
-    saldoActual: 2800000,
-    tasaInteresAnual: 28.5,
-    pagoMinimoMensual: 140000,
-    diaCorteOPago: 15,
-    pagoExtraPlaneadoMensual: 0,
-    activa: true,
-  },
-  {
-    id: generateId(),
-    nombre: "Tarjeta Crédito Bancolombia",
-    tipo: "Tarjeta de crédito",
-    entidad: "Bancolombia",
-    saldoInicial: 5000000,
-    saldoActual: 4200000,
-    tasaInteresAnual: 26.0,
-    pagoMinimoMensual: 210000,
-    diaCorteOPago: 20,
-    pagoExtraPlaneadoMensual: 0,
-    activa: true,
-  },
-  {
-    id: generateId(),
-    nombre: "Crédito Libre Inversión",
-    tipo: "Crédito personal",
-    entidad: "Davivienda",
-    saldoInicial: 8000000,
-    saldoActual: 6500000,
-    tasaInteresAnual: 22.0,
-    pagoMinimoMensual: 350000,
-    diaCorteOPago: 5,
-    pagoExtraPlaneadoMensual: 0,
-    activa: true,
-  },
-];
+  if (error) throw error;
 
-const seedConfig: Configuracion = {
-  ...defaultConfig,
-  ingresoMensualNeto: 4500000,
-  presupuestoMensualParaDeudas: 900000,
-};
-
-// Storage functions
-export function loadGastos(): Gasto[] {
-  const data = localStorage.getItem(KEYS.gastos);
-  if (!data) {
-    saveGastos(seedGastos);
-    return seedGastos;
-  }
-  return JSON.parse(data);
-}
-
-export function saveGastos(gastos: Gasto[]): void {
-  localStorage.setItem(KEYS.gastos, JSON.stringify(gastos));
-}
-
-export function loadDeudas(): Deuda[] {
-  const data = localStorage.getItem(KEYS.deudas);
-  if (!data) {
-    saveDeudas(seedDeudas);
-    return seedDeudas;
-  }
-  return JSON.parse(data);
-}
-
-export function saveDeudas(deudas: Deuda[]): void {
-  localStorage.setItem(KEYS.deudas, JSON.stringify(deudas));
-}
-
-export function loadConfiguracion(): Configuracion {
-  const data = localStorage.getItem(KEYS.configuracion);
-  if (!data) {
-    saveConfiguracion(seedConfig);
-    return seedConfig;
-  }
-  return JSON.parse(data);
-}
-
-export function saveConfiguracion(config: Configuracion): void {
-  localStorage.setItem(KEYS.configuracion, JSON.stringify(config));
-}
-
-export function newGastoId(): string {
-  return generateId();
-}
-
-export function newDeudaId(): string {
-  return generateId();
+  return {
+    id: data.id,
+    ingresoMensualNeto: Number(data.ingreso_mensual_neto),
+    monedaSimbolo: data.moneda_simbolo,
+    nombreMoneda: data.nombre_moneda,
+    presupuestoMensualParaDeudas: Number(data.presupuesto_mensual_para_deudas),
+    mesesMaxProyeccion: data.meses_max_proyeccion,
+    estrategiaOrdenDeudas: data.estrategia_orden_deudas as EstrategiaOrden,
+  };
 }
