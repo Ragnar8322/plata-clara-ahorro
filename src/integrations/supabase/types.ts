@@ -14,7 +14,144 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      configuracion: {
+        Row: {
+          created_at: string
+          estrategia_orden_deudas: string
+          id: string
+          ingreso_mensual_neto: number
+          meses_max_proyeccion: number
+          moneda_simbolo: string
+          nombre_moneda: string
+          presupuesto_mensual_para_deudas: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          estrategia_orden_deudas?: string
+          id?: string
+          ingreso_mensual_neto?: number
+          meses_max_proyeccion?: number
+          moneda_simbolo?: string
+          nombre_moneda?: string
+          presupuesto_mensual_para_deudas?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          estrategia_orden_deudas?: string
+          id?: string
+          ingreso_mensual_neto?: number
+          meses_max_proyeccion?: number
+          moneda_simbolo?: string
+          nombre_moneda?: string
+          presupuesto_mensual_para_deudas?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      deudas: {
+        Row: {
+          activa: boolean
+          created_at: string
+          dia_corte_o_pago: number
+          entidad: string
+          id: string
+          nombre: string
+          notas: string | null
+          pago_extra_planeado_mensual: number
+          pago_minimo_mensual: number
+          saldo_actual: number
+          saldo_inicial: number
+          tasa_interes_anual: number
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activa?: boolean
+          created_at?: string
+          dia_corte_o_pago: number
+          entidad: string
+          id?: string
+          nombre: string
+          notas?: string | null
+          pago_extra_planeado_mensual?: number
+          pago_minimo_mensual: number
+          saldo_actual: number
+          saldo_inicial: number
+          tasa_interes_anual: number
+          tipo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activa?: boolean
+          created_at?: string
+          dia_corte_o_pago?: number
+          entidad?: string
+          id?: string
+          nombre?: string
+          notas?: string | null
+          pago_extra_planeado_mensual?: number
+          pago_minimo_mensual?: number
+          saldo_actual?: number
+          saldo_inicial?: number
+          tasa_interes_anual?: number
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      gastos: {
+        Row: {
+          categoria: string
+          created_at: string
+          descripcion: string
+          fecha: string
+          frecuencia: string
+          id: string
+          metodo_pago: string
+          monto: number
+          notas: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          descripcion: string
+          fecha: string
+          frecuencia: string
+          id?: string
+          metodo_pago: string
+          monto: number
+          notas?: string | null
+          tipo: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          descripcion?: string
+          fecha?: string
+          frecuencia?: string
+          id?: string
+          metodo_pago?: string
+          monto?: number
+          notas?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
