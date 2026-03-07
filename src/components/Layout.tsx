@@ -1,13 +1,11 @@
 import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Receipt,
-  CreditCard,
-  TrendingDown,
-  Settings,
+  LayoutDashboard, Receipt, CreditCard, TrendingDown, Settings, LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 const navItems = [
   { to: "/", label: "Resumen", icon: LayoutDashboard },
@@ -19,17 +17,23 @@ const navItems = [
 
 export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { signOut, user } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="sticky top-0 z-30 border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <h1 className="text-lg font-bold text-foreground tracking-tight">
             💰 Mi Finanzas
           </h1>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden sm:inline">{user?.email}</span>
+            <Button variant="ghost" size="sm" onClick={signOut} className="gap-1.5">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Salir</span>
+            </Button>
+          </div>
         </div>
-        {/* Navigation tabs */}
         <nav className="mx-auto max-w-6xl overflow-x-auto px-4">
           <div className="flex gap-1">
             {navItems.map((item) => {
@@ -55,7 +59,6 @@ export default function Layout({ children }: { children: ReactNode }) {
         </nav>
       </header>
 
-      {/* Content */}
       <main className="mx-auto max-w-6xl px-4 py-6">
         {children}
       </main>
