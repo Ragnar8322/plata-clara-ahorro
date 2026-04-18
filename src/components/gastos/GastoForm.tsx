@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Gasto, CATEGORIAS_GASTO, METODOS_PAGO, TIPOS_GASTO, FRECUENCIAS } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +16,25 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+const gastoSchema = z.object({
+  fecha: z.string().min(1, "La fecha es obligatoria"),
+  categoria: z.enum(CATEGORIAS_GASTO as [string, ...string[]], {
+    required_error: "La categoría es obligatoria",
+  }),
+  descripcion: z.string().min(1, "La descripción es obligatoria"),
+  monto: z.coerce.number().min(0.01, "El monto debe ser mayor a 0"),
+  metodoPago: z.enum(METODOS_PAGO as [string, ...string[]], {
+    required_error: "El método de pago es obligatorio",
+  }),
+  tipo: z.enum(TIPOS_GASTO as [string, ...string[]], {
+    required_error: "El tipo es obligatorio",
+  }),
+  frecuencia: z.enum(FRECUENCIAS as [string, ...string[]]).default("Único"),
+  notas: z.string().optional(),
+});
+
+type FormValues = z.infer<typeof gastoSchema>;
+
 interface GastoFormProps {
   gastoEditar?: Gasto | null;
   onSubmit: (gasto: Omit<Gasto, "id"> & { id?: string }) => void;
@@ -20,46 +42,66 @@ interface GastoFormProps {
 }
 
 export default function GastoForm({ gastoEditar, onSubmit, onCancel }: GastoFormProps) {
-  const [fecha, setFecha] = useState(gastoEditar?.fecha || new Date().toISOString().split("T")[0]);
-  const [categoria, setCategoria] = useState(gastoEditar?.categoria || "");
-  const [descripcion, setDescripcion] = useState(gastoEditar?.descripcion || "");
-  const [monto, setMonto] = useState(gastoEditar?.monto?.toString() || "");
-  const [metodoPago, setMetodoPago] = useState(gastoEditar?.metodoPago || "");
-  const [tipo, setTipo] = useState(gastoEditar?.tipo || "");
-  const [frecuencia, setFrecuencia] = useState<string>(gastoEditar?.frecuencia || "Único");
-  const [notas, setNotas] = useState(gastoEditar?.notas || "");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(gastoSchema),
+    defaultValues: {
+      fecha: new Date().toISOString().split("T")[0],
+      categoria: undefined,
+      descripcion: "",
+      monto: undefined as unknown as number,
+      metodoPago: undefined,
+      tipo: undefined,
+      frecuencia: "Único",
+      notas: "",
+    },
+  });
 
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!fecha) e.fecha = "La fecha es obligatoria";
-    if (!categoria) e.categoria = "La categoría es obligatoria";
-    if (!descripcion.trim()) e.descripcion = "La descripción es obligatoria";
-    if (!monto || Number(monto) <= 0) e.monto = "El monto debe ser mayor a 0";
-    if (!metodoPago) e.metodoPago = "El método de pago es obligatorio";
-    if (!tipo) e.tipo = "El tipo es obligatorio";
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
+  useEffect(() => {
+    if (gastoEditar) {
+      reset({
+        fecha: gastoEditar.fecha,
+        categoria: gastoEditar.categoria,
+        descripcion: gastoEditar.descripcion,
+        monto: gastoEditar.monto,
+        metodoPago: gastoEditar.metodoPago,
+        tipo: gastoEditar.tipo,
+        frecuencia: gastoEditar.frecuencia,
+        notas: gastoEditar.notas || "",
+      });
+    } else {
+      reset({
+        fecha: new Date().toISOString().split("T")[0],
+        categoria: undefined as any,
+        descripcion: "",
+        monto: undefined as any,
+        metodoPago: undefined as any,
+        tipo: undefined as any,
+        frecuencia: "Único",
+        notas: "",
+      });
+    }
+  }, [gastoEditar, reset]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
+  const onValidSubmit = (data: FormValues) => {
     onSubmit({
       ...(gastoEditar ? { id: gastoEditar.id } : {}),
-      fecha,
-      categoria: categoria as Gasto["categoria"],
-      descripcion: descripcion.trim(),
-      monto: Number(monto),
-      metodoPago: metodoPago as Gasto["metodoPago"],
-      tipo: tipo as Gasto["tipo"],
-      frecuencia: (frecuencia || "Único") as Gasto["frecuencia"],
-      notas: notas.trim() || undefined,
+      fecha: data.fecha,
+      categoria: data.categoria as Gasto["categoria"],
+      descripcion: data.descripcion,
+      monto: data.monto,
+      metodoPago: data.metodoPago as Gasto["metodoPago"],
+      tipo: data.tipo as Gasto["tipo"],
+      frecuencia: data.frecuencia as Gasto["frecuencia"],
+      notas: data.notas || undefined,
     });
     if (!gastoEditar) {
-      setDescripcion("");
-      setMonto("");
-      setNotas("");
+      reset({
+        fecha: new Date().toISOString().split("T")[0],
+        descripcion: "",
+        monto: undefined as any,
+        notas: "",
+        // Keep previously selected categoria, metodoPago, tipo, frecuencia for speed entry
+      });
     }
   };
 
@@ -71,65 +113,97 @@ export default function GastoForm({ gastoEditar, onSubmit, onCancel }: GastoForm
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+        <form onSubmit={handleSubmit(onValidSubmit)} className="grid gap-4 sm:grid-cols-2">
           <div>
             <Label htmlFor="fecha">Fecha *</Label>
-            <Input id="fecha" type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
-            {errors.fecha && <p className="text-xs text-destructive mt-1">{errors.fecha}</p>}
+            <Input id="fecha" type="date" {...register("fecha")} />
+            {errors.fecha && <p className="text-xs text-destructive mt-1">{errors.fecha.message}</p>}
           </div>
+
           <div>
             <Label>Categoría *</Label>
-            <Select value={categoria} onValueChange={setCategoria}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-              <SelectContent>
-                {CATEGORIAS_GASTO.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {errors.categoria && <p className="text-xs text-destructive mt-1">{errors.categoria}</p>}
+            <Controller
+              name="categoria"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIAS_GASTO.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.categoria && <p className="text-xs text-destructive mt-1">{errors.categoria.message}</p>}
           </div>
+
           <div className="sm:col-span-2">
             <Label htmlFor="desc">Descripción *</Label>
-            <Input id="desc" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Ej.: Arriendo mensual" />
-            {errors.descripcion && <p className="text-xs text-destructive mt-1">{errors.descripcion}</p>}
+            <Input id="desc" placeholder="Ej.: Arriendo mensual" {...register("descripcion")} />
+            {errors.descripcion && <p className="text-xs text-destructive mt-1">{errors.descripcion.message}</p>}
           </div>
+
           <div>
             <Label htmlFor="monto">Monto *</Label>
-            <Input id="monto" type="number" min="0" step="1" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="0" />
-            {errors.monto && <p className="text-xs text-destructive mt-1">{errors.monto}</p>}
+            <Input id="monto" type="number" min="0" step="0.01" placeholder="0" {...register("monto")} />
+            {errors.monto && <p className="text-xs text-destructive mt-1">{errors.monto.message}</p>}
           </div>
+
           <div>
             <Label>Método de pago *</Label>
-            <Select value={metodoPago} onValueChange={setMetodoPago}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-              <SelectContent>
-                {METODOS_PAGO.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {errors.metodoPago && <p className="text-xs text-destructive mt-1">{errors.metodoPago}</p>}
+            <Controller
+              name="metodoPago"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {METODOS_PAGO.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.metodoPago && <p className="text-xs text-destructive mt-1">{errors.metodoPago.message}</p>}
           </div>
+
           <div>
             <Label>Tipo *</Label>
-            <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-              <SelectContent>
-                {TIPOS_GASTO.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {errors.tipo && <p className="text-xs text-destructive mt-1">{errors.tipo}</p>}
+            <Controller
+              name="tipo"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {TIPOS_GASTO.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.tipo && <p className="text-xs text-destructive mt-1">{errors.tipo.message}</p>}
           </div>
+
           <div>
             <Label>Frecuencia</Label>
-            <Select value={frecuencia} onValueChange={setFrecuencia}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {FRECUENCIAS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Controller
+              name="frecuencia"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {FRECUENCIAS.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
+
           <div className="sm:col-span-2">
             <Label htmlFor="notas">Notas (opcional)</Label>
-            <Textarea id="notas" value={notas} onChange={(e) => setNotas(e.target.value)} rows={2} placeholder="Notas adicionales..." />
+            <Textarea id="notas" rows={2} placeholder="Notas adicionales..." {...register("notas")} />
           </div>
+
           <div className="sm:col-span-2 flex gap-2">
             <Button type="submit">{gastoEditar ? "Guardar cambios" : "Agregar gasto"}</Button>
             {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>}

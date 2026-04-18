@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Deuda, TIPOS_DEUDA } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +17,27 @@ import {
 } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 
+const deudaSchema = z.object({
+  nombre: z.string().min(1, "El nombre es obligatorio"),
+  tipo: z.enum(TIPOS_DEUDA as [string, ...string[]], {
+    required_error: "El tipo es obligatorio",
+  }),
+  entidad: z.string().min(1, "La entidad es obligatoria"),
+  saldoInicial: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
+  saldoActual: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
+  tasaInteresAnual: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
+  pagoMinimoMensual: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
+  diaCorteOPago: z.coerce.number().min(1, "Entre 1 y 31").max(31, "Entre 1 y 31"),
+  pagoExtraPlaneadoMensual: z.coerce.number().min(0).default(0),
+  activa: z.boolean().default(true),
+  notas: z.string().optional(),
+}).refine(data => data.saldoActual <= data.saldoInicial, {
+  message: "El saldo actual es mayor al saldo inicial",
+  path: ["saldoActual"]
+});
+
+type FormValues = z.infer<typeof deudaSchema>;
+
 interface Props {
   deudaEditar?: Deuda | null;
   onSubmit: (deuda: Omit<Deuda, "id"> & { id?: string }) => void;
@@ -21,78 +45,78 @@ interface Props {
 }
 
 export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
-  const [nombre, setNombre] = useState(deudaEditar?.nombre || "");
-  const [tipo, setTipo] = useState(deudaEditar?.tipo || "");
-  const [entidad, setEntidad] = useState(deudaEditar?.entidad || "");
-  const [saldoInicial, setSaldoInicial] = useState(deudaEditar?.saldoInicial?.toString() || "");
-  const [saldoActual, setSaldoActual] = useState(deudaEditar?.saldoActual?.toString() || "");
-  const [tasaInteres, setTasaInteres] = useState(deudaEditar?.tasaInteresAnual?.toString() || "");
-  const [pagoMinimo, setPagoMinimo] = useState(deudaEditar?.pagoMinimoMensual?.toString() || "");
-  const [diaCorte, setDiaCorte] = useState(deudaEditar?.diaCorteOPago?.toString() || "");
-  const [pagoExtra, setPagoExtra] = useState(deudaEditar?.pagoExtraPlaneadoMensual?.toString() || "0");
-  const [activa, setActiva] = useState(deudaEditar?.activa ?? true);
-  const [notas, setNotas] = useState(deudaEditar?.notas || "");
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [warnings, setWarnings] = useState<string[]>([]);
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(deudaSchema),
+    defaultValues: {
+      nombre: "",
+      tipo: undefined,
+      entidad: "",
+      saldoInicial: undefined as unknown as number,
+      saldoActual: undefined as unknown as number,
+      tasaInteresAnual: undefined as unknown as number,
+      pagoMinimoMensual: undefined as unknown as number,
+      diaCorteOPago: undefined as unknown as number,
+      pagoExtraPlaneadoMensual: 0,
+      activa: true,
+      notas: "",
+    },
+  });
 
-  const validate = () => {
-    const e: Record<string, string> = {};
-    const w: string[] = [];
-    if (!nombre.trim()) e.nombre = "Obligatorio";
-    if (!tipo) e.tipo = "Obligatorio";
-    if (!entidad.trim()) e.entidad = "Obligatorio";
-    if (!saldoInicial || Number(saldoInicial) < 0) e.saldoInicial = "Debe ser >= 0";
-    if (!saldoActual || Number(saldoActual) < 0) e.saldoActual = "Debe ser >= 0";
-    if (!tasaInteres || Number(tasaInteres) < 0) e.tasaInteres = "Debe ser >= 0";
-    if (!pagoMinimo || Number(pagoMinimo) < 0) e.pagoMinimo = "Debe ser >= 0";
-    if (!diaCorte || Number(diaCorte) < 1 || Number(diaCorte) > 31) e.diaCorte = "Entre 1 y 31";
-    if (Number(saldoActual) > Number(saldoInicial)) {
-      w.push("El saldo actual es mayor al saldo inicial.");
+  useEffect(() => {
+    if (deudaEditar) {
+      reset({
+        nombre: deudaEditar.nombre,
+        tipo: deudaEditar.tipo,
+        entidad: deudaEditar.entidad,
+        saldoInicial: deudaEditar.saldoInicial,
+        saldoActual: deudaEditar.saldoActual,
+        tasaInteresAnual: deudaEditar.tasaInteresAnual,
+        pagoMinimoMensual: deudaEditar.pagoMinimoMensual,
+        diaCorteOPago: deudaEditar.diaCorteOPago,
+        pagoExtraPlaneadoMensual: deudaEditar.pagoExtraPlaneadoMensual || 0,
+        activa: deudaEditar.activa ?? true,
+        notas: deudaEditar.notas || "",
+      });
+    } else {
+      reset({
+        nombre: "",
+        tipo: undefined as any,
+        entidad: "",
+        saldoInicial: undefined as any,
+        saldoActual: undefined as any,
+        tasaInteresAnual: undefined as any,
+        pagoMinimoMensual: undefined as any,
+        diaCorteOPago: undefined as any,
+        pagoExtraPlaneadoMensual: 0,
+        activa: true,
+        notas: "",
+      });
     }
-    setErrors(e);
-    setWarnings(w);
-    return Object.keys(e).length === 0;
-  };
+  }, [deudaEditar, reset]);
 
-  const handleSubmit = (ev: React.FormEvent) => {
-    ev.preventDefault();
-    if (!validate()) return;
+  const onValidSubmit = (data: FormValues) => {
     onSubmit({
       ...(deudaEditar ? { id: deudaEditar.id } : {}),
-      nombre: nombre.trim(),
-      tipo: tipo as Deuda["tipo"],
-      entidad: entidad.trim(),
-      saldoInicial: Number(saldoInicial),
-      saldoActual: Number(saldoActual),
-      tasaInteresAnual: Number(tasaInteres),
-      pagoMinimoMensual: Number(pagoMinimo),
-      diaCorteOPago: Number(diaCorte),
-      pagoExtraPlaneadoMensual: Number(pagoExtra) || 0,
-      activa,
-      notas: notas.trim() || undefined,
+      nombre: data.nombre,
+      tipo: data.tipo as Deuda["tipo"],
+      entidad: data.entidad,
+      saldoInicial: data.saldoInicial,
+      saldoActual: data.saldoActual,
+      tasaInteresAnual: data.tasaInteresAnual,
+      pagoMinimoMensual: data.pagoMinimoMensual,
+      diaCorteOPago: data.diaCorteOPago,
+      pagoExtraPlaneadoMensual: data.pagoExtraPlaneadoMensual,
+      activa: data.activa,
+      notas: data.notas || undefined,
     });
     if (!deudaEditar) {
-      setNombre(""); setEntidad(""); setSaldoInicial(""); setSaldoActual("");
-      setTasaInteres(""); setPagoMinimo(""); setDiaCorte(""); setPagoExtra("0"); setNotas("");
+      reset({
+        nombre: "", entidad: "", saldoInicial: undefined as any, saldoActual: undefined as any,
+        tasaInteresAnual: undefined as any, pagoMinimoMensual: undefined as any, diaCorteOPago: undefined as any,
+        pagoExtraPlaneadoMensual: 0, activa: true, notas: ""
+      });
     }
   };
-
-  const field = (label: string, id: string, value: string, onChange: (v: string) => void, opts?: { type?: string; placeholder?: string; min?: string; max?: string; tooltip?: string }) => (
-    <div>
-      <div className="flex items-center gap-1">
-        <Label htmlFor={id}>{label} *</Label>
-        {opts?.tooltip && (
-          <Tooltip>
-            <TooltipTrigger type="button"><HelpCircle className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
-            <TooltipContent className="max-w-[220px] text-xs">{opts.tooltip}</TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-      <Input id={id} type={opts?.type || "text"} value={value} onChange={(e) => onChange(e.target.value)}
-        placeholder={opts?.placeholder} min={opts?.min} max={opts?.max} step="any" />
-      {errors[id] && <p className="text-xs text-destructive mt-1">{errors[id]}</p>}
-    </div>
-  );
 
   return (
     <Card>
@@ -100,46 +124,94 @@ export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
         <CardTitle className="text-base">{deudaEditar ? "Editar deuda" : "Registrar nueva deuda"}</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {field("Nombre", "nombre", nombre, setNombre, { placeholder: "Ej.: Tarjeta Banco X" })}
+        <form onSubmit={handleSubmit(onValidSubmit)} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <Label htmlFor="nombre">Nombre *</Label>
+            <Input id="nombre" placeholder="Ej.: Tarjeta Banco X" {...register("nombre")} />
+            {errors.nombre && <p className="text-xs text-destructive mt-1">{errors.nombre.message}</p>}
+          </div>
+
           <div>
             <Label>Tipo *</Label>
-            <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-              <SelectContent>
-                {TIPOS_DEUDA.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            {errors.tipo && <p className="text-xs text-destructive mt-1">{errors.tipo}</p>}
+            <Controller
+              name="tipo"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {TIPOS_DEUDA.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.tipo && <p className="text-xs text-destructive mt-1">{errors.tipo.message}</p>}
           </div>
-          {field("Entidad", "entidad", entidad, setEntidad, { placeholder: "Banco o entidad" })}
-          {field("Saldo inicial", "saldoInicial", saldoInicial, setSaldoInicial, { type: "number", min: "0" })}
-          {field("Saldo actual", "saldoActual", saldoActual, setSaldoActual, { type: "number", min: "0" })}
-          {field("Tasa interés anual (%)", "tasaInteres", tasaInteres, setTasaInteres, {
-            type: "number", min: "0", placeholder: "Ej.: 28.5",
-            tooltip: "Porcentaje anual efectivo. Ej.: 28.5 para 28.5% E.A."
-          })}
-          {field("Pago mínimo mensual", "pagoMinimo", pagoMinimo, setPagoMinimo, { type: "number", min: "0" })}
-          {field("Día de corte/pago", "diaCorte", diaCorte, setDiaCorte, { type: "number", min: "1", max: "31" })}
+
+          <div>
+            <Label htmlFor="entidad">Entidad *</Label>
+            <Input id="entidad" placeholder="Banco o entidad" {...register("entidad")} />
+            {errors.entidad && <p className="text-xs text-destructive mt-1">{errors.entidad.message}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="saldoInicial">Saldo inicial *</Label>
+            <Input id="saldoInicial" type="number" min="0" step="0.01" {...register("saldoInicial")} />
+            {errors.saldoInicial && <p className="text-xs text-destructive mt-1">{errors.saldoInicial.message}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="saldoActual">Saldo actual *</Label>
+            <Input id="saldoActual" type="number" min="0" step="0.01" {...register("saldoActual")} />
+            {errors.saldoActual && <p className="text-xs text-warning mt-1">{errors.saldoActual.message}</p>}
+          </div>
+
+          <div>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="tasaInteres">Tasa interés anual (%) *</Label>
+              <Tooltip>
+                <TooltipTrigger type="button"><HelpCircle className="h-3.5 w-3.5 text-muted-foreground" /></TooltipTrigger>
+                <TooltipContent className="max-w-[220px] text-xs">Porcentaje anual efectivo. Ej.: 28.5 para 28.5% E.A.</TooltipContent>
+              </Tooltip>
+            </div>
+            <Input id="tasaInteres" type="number" min="0" step="0.01" placeholder="Ej.: 28.5" {...register("tasaInteresAnual")} />
+            {errors.tasaInteresAnual && <p className="text-xs text-destructive mt-1">{errors.tasaInteresAnual.message}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="pagoMinimo">Pago mínimo mensual *</Label>
+            <Input id="pagoMinimo" type="number" min="0" step="0.01" {...register("pagoMinimoMensual")} />
+            {errors.pagoMinimoMensual && <p className="text-xs text-destructive mt-1">{errors.pagoMinimoMensual.message}</p>}
+          </div>
+
+          <div>
+            <Label htmlFor="diaCorte">Día de corte/pago *</Label>
+            <Input id="diaCorte" type="number" min="1" max="31" step="1" {...register("diaCorteOPago")} />
+            {errors.diaCorteOPago && <p className="text-xs text-destructive mt-1">{errors.diaCorteOPago.message}</p>}
+          </div>
+
           <div>
             <Label htmlFor="pagoExtra">Pago extra planeado mensual</Label>
-            <Input id="pagoExtra" type="number" min="0" value={pagoExtra} onChange={(e) => setPagoExtra(e.target.value)} />
+            <Input id="pagoExtra" type="number" min="0" step="0.01" {...register("pagoExtraPlaneadoMensual")} />
+            {errors.pagoExtraPlaneadoMensual && <p className="text-xs text-destructive mt-1">{errors.pagoExtraPlaneadoMensual.message}</p>}
           </div>
-          <div className="flex items-center gap-2 self-end pb-1">
-            <Checkbox id="activa" checked={activa} onCheckedChange={(v) => setActiva(!!v)} />
+
+          <div className="flex items-center gap-2 self-end pb-1 lg:col-span-3">
+            <Controller
+              name="activa"
+              control={control}
+              render={({ field }) => (
+                <Checkbox id="activa" checked={field.value} onCheckedChange={field.onChange} />
+              )}
+            />
             <Label htmlFor="activa" className="cursor-pointer">Deuda activa</Label>
           </div>
+
           <div className="sm:col-span-2 lg:col-span-3">
             <Label htmlFor="notasD">Notas (opcional)</Label>
-            <Textarea id="notasD" value={notas} onChange={(e) => setNotas(e.target.value)} rows={2} />
+            <Textarea id="notasD" rows={2} {...register("notas")} />
           </div>
-          {warnings.length > 0 && (
-            <div className="sm:col-span-2 lg:col-span-3">
-              {warnings.map((w, i) => (
-                <p key={i} className="text-xs text-warning">{w}</p>
-              ))}
-            </div>
-          )}
+
           <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
             <Button type="submit">{deudaEditar ? "Guardar cambios" : "Agregar deuda"}</Button>
             {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>}

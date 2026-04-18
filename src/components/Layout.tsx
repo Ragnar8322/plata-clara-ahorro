@@ -6,6 +6,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/ModeToggle";
 
 const navItems = [
   { to: "/", label: "Resumen", icon: LayoutDashboard },
@@ -28,6 +29,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             <span className="text-2xl">🪙</span> Plata Clara
           </h1>
           <div className="flex items-center gap-2">
+            <ModeToggle />
             <span className="text-xs text-muted-foreground hidden sm:inline">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={signOut} className="gap-1.5">
               <LogOut className="h-4 w-4" />

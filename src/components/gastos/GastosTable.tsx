@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Gasto, Configuracion, CATEGORIAS_GASTO, METODOS_PAGO } from "@/types";
 import { formatMoney } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
   gastos: Gasto[];
@@ -30,6 +30,12 @@ export default function GastosTable({ gastos, config, onEdit, onDelete }: Props)
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
   const [busqueda, setBusqueda] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const itemsPorPagina = 10;
+
+  useEffect(() => {
+    setPagina(1);
+  }, [filtroCategoria, filtroMetodo, fechaDesde, fechaHasta, busqueda]);
 
   const gastosFiltrados = useMemo(() => {
     return gastos.filter((g) => {
@@ -39,7 +45,7 @@ export default function GastosTable({ gastos, config, onEdit, onDelete }: Props)
       if (fechaHasta && g.fecha > fechaHasta) return false;
       if (busqueda && !g.descripcion.toLowerCase().includes(busqueda.toLowerCase())) return false;
       return true;
-    });
+    }).sort((a, b) => b.fecha.localeCompare(a.fecha)); // sort descending by date ideally
   }, [gastos, filtroCategoria, filtroMetodo, fechaDesde, fechaHasta, busqueda]);
 
   const total = useMemo(() => gastosFiltrados.reduce((s, g) => s + g.monto, 0), [gastosFiltrados]);
@@ -51,6 +57,9 @@ export default function GastosTable({ gastos, config, onEdit, onDelete }: Props)
     });
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [gastosFiltrados]);
+
+  const paginasTotales = Math.ceil(gastosFiltrados.length / itemsPorPagina);
+  const gastosPaginados = gastosFiltrados.slice((pagina - 1) * itemsPorPagina, pagina * itemsPorPagina);
 
   return (
     <div className="space-y-4">
@@ -118,59 +127,74 @@ export default function GastosTable({ gastos, config, onEdit, onDelete }: Props)
           {gastosFiltrados.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">No hay gastos registrados.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                  <TableHead>Método</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Frec.</TableHead>
-                  <TableHead className="w-[80px]">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {gastosFiltrados.map((g) => (
-                  <TableRow key={g.id}>
-                    <TableCell className="whitespace-nowrap">{g.fecha}</TableCell>
-                    <TableCell>{g.categoria}</TableCell>
-                    <TableCell>{g.descripcion}</TableCell>
-                    <TableCell className="text-right font-medium">{formatMoney(g.monto, config)}</TableCell>
-                    <TableCell>{g.metodoPago}</TableCell>
-                    <TableCell>{g.tipo}</TableCell>
-                    <TableCell>{g.frecuencia}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(g)}>
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>¿Eliminar gasto?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Se eliminará "{g.descripcion}". Esta acción no se puede deshacer.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => onDelete(g.id)}>Eliminar</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead>Descripción</TableHead>
+                    <TableHead className="text-right">Monto</TableHead>
+                    <TableHead>Método</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Frec.</TableHead>
+                    <TableHead className="w-[80px]">Acciones</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {gastosPaginados.map((g) => (
+                    <TableRow key={g.id}>
+                      <TableCell className="whitespace-nowrap">{g.fecha}</TableCell>
+                      <TableCell>{g.categoria}</TableCell>
+                      <TableCell>{g.descripcion}</TableCell>
+                      <TableCell className="text-right font-medium">{formatMoney(g.monto, config)}</TableCell>
+                      <TableCell>{g.metodoPago}</TableCell>
+                      <TableCell>{g.tipo}</TableCell>
+                      <TableCell>{g.frecuencia}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(g)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar gasto?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Se eliminará "{g.descripcion}". Esta acción no se puede deshacer.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDelete(g.id)}>Eliminar</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando {(pagina - 1) * itemsPorPagina + 1} a {Math.min(pagina * itemsPorPagina, gastosFiltrados.length)} de {gastosFiltrados.length}
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setPagina(p => Math.max(1, p - 1))} disabled={pagina === 1}>
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setPagina(p => Math.min(paginasTotales, p + 1))} disabled={pagina === paginasTotales || paginasTotales === 0}>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
