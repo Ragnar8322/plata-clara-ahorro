@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Deuda, Configuracion, EstrategiaOrden, ResultadoSimulacion } from "@/types";
+import { Deuda, Configuracion, EstrategiaOrden, ResultadoSimulacion } from "../types";
 import { simularBolaDeNieve } from "@/services/snowballCalculator";
 import { formatMoney } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, CartesianGrid,
   BarChart, Bar, Cell, Legend
 } from "recharts";
-import { HelpCircle, RefreshCw, PartyPopper, TrendingDown, PieChart } from "lucide-react";
+import { HelpCircle, RefreshCw, PartyPopper, TrendingDown, PieChart as ChartPieIcon } from "lucide-react";
 
 interface Props {
   deudas: Deuda[];
@@ -217,7 +217,7 @@ export default function ProyeccionPage({ deudas, config }: Props) {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <PieChart className="h-4 w-4 text-primary" />
+                  <ChartPieIcon className="h-4 w-4 text-primary" />
                   Distribución de Pagos (Capital vs Interés)
                 </CardTitle>
               </CardHeader>

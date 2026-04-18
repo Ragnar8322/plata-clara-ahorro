@@ -126,7 +126,6 @@ export interface MetaAhorro {
   estado?: string;
 }
 
-// Nuevas Interfaces
 export interface CategoriaPersonalizada {
   id: string;
   user_id?: string;
