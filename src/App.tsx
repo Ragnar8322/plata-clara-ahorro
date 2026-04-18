@@ -53,6 +53,15 @@ function AppContent() {
     loading, configLoaded,
   } = useFinancialData();
 
+  const now = useMemo(() => new Date(), []);
+  const mesActual = useMemo(() => 
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+  , [now]);
+
+  const healthScore = useMemo(() => 
+    calculateHealthScore(ingresos, deudas, metas, gastos, mesActual)
+  , [ingresos, deudas, metas, gastos, mesActual, calculateHealthScore]);
+
   if (loading) {
     return (
       <Layout>
@@ -85,13 +94,6 @@ function AppContent() {
       </Layout>
     );
   }
-
-  const now = new Date();
-  const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-  const healthScore = useMemo(() => 
-    calculateHealthScore(ingresos, deudas, metas, gastos, mesActual)
-  , [ingresos, deudas, metas, gastos, mesActual]);
 
   return (
     <Layout>

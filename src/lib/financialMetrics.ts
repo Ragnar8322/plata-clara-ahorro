@@ -13,14 +13,22 @@ export function calculateHealthScore(
   let score = 0;
 
   // 1. Cálculos Base
-  const ingresoTotal = ingresos.reduce((s, i) => s + i.monto, 0) || 1; // Evitar división por cero
-  const totalMinimos = deudas.filter(d => d.activa).reduce((s, d) => s + d.pagoMinimoMensual, 0);
-  const totalGastosMes = gastos
-    .filter(g => g.fecha.startsWith(mesKey))
-    .reduce((s, g) => s + g.monto, 0);
+  const safeIngresos = ingresos || [];
+  const safeDeudas = deudas || [];
+  const safeMetas = metas || [];
+  const safeGastos = gastos || [];
+
+  const ingresoTotal = safeIngresos.reduce((s, i) => s + (i.monto || 0), 0) || 1;
+  const totalMinimos = safeDeudas
+    .filter(d => d && d.activa)
+    .reduce((s, d) => s + (d.pagoMinimoMensual || 0), 0);
+  
+  const totalGastosMes = safeGastos
+    .filter(g => g && g.fecha && g.fecha.startsWith(mesKey))
+    .reduce((s, g) => s + (g.monto || 0), 0);
   
   const margen = ingresoTotal - totalGastosMes - totalMinimos;
-  const metasActivas = metas.filter(m => m.activa);
+  const metasActivas = safeMetas.filter(m => m && m.activa);
 
   // 2. Componente 1: Endeudamiento (30 pts max)
   const ratioDeuda = totalMinimos / ingresoTotal;
