@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Gasto, CATEGORIAS_GASTO_DEFAULT, METODOS_PAGO, TIPOS_GASTO, FRECUENCIAS, CategoriaPersonalizada, Deuda } from "@/types";
+import { Gasto, CATEGORIAS_GASTO, METODOS_PAGO, TIPOS_GASTO, FRECUENCIAS, CategoriaPersonalizada, Deuda } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,7 +111,7 @@ export default function GastoForm({ gastoEditar, categorias = [], deudas = [], o
   };
 
   const opcionesCategoria = useMemo(() => {
-    const list = [...CATEGORIAS_GASTO_DEFAULT];
+    const list = [...CATEGORIAS_GASTO];
     categorias.forEach(c => {
       if (!list.includes(c.nombre)) {
         list.push(c.nombre);
