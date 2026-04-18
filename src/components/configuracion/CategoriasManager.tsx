@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CategoriaPersonalizada, CATEGORIAS_GASTO_DEFAULT } from "@/types";
+import { CategoriaPersonalizada, CATEGORIAS_GASTO } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,7 +23,7 @@ export default function CategoriasManager({ categorias, onAdd, onDelete }: Props
     if (!nuevaCategoria.trim()) return;
     
     // Validar duplicados contra las categorias por defecto
-    if (CATEGORIAS_GASTO_DEFAULT.map(c => c.toLowerCase()).includes(nuevaCategoria.trim().toLowerCase())) {
+    if (CATEGORIAS_GASTO.map(c => c.toLowerCase()).includes(nuevaCategoria.trim().toLowerCase())) {
       toast.error("Esta categoría ya existe por defecto.");
       return;
     }
@@ -94,7 +94,7 @@ export default function CategoriasManager({ categorias, onAdd, onDelete }: Props
         <div className="space-y-4">
           <h4 className="text-sm font-medium text-muted-foreground">Tus categorías predeterminadas:</h4>
           <div className="flex flex-wrap gap-2">
-            {CATEGORIAS_GASTO_DEFAULT.map(cat => (
+            {CATEGORIAS_GASTO.map(cat => (
               <div key={cat} className="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-sm">
                 {cat}
               </div>
