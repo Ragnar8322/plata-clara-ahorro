@@ -150,6 +150,30 @@ export default function ProyeccionPage({ deudas, config }: Props) {
         <>
           {/* Summary */}
           <div className="flex flex-wrap gap-3">
+            <Card className="flex-1 min-w-[180px]">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground">Meses simulados</p>
+                <p className="text-xl font-bold">{resultado.mesesSimulados}</p>
+              </CardContent>
+            </Card>
+            <Card className="flex-1 min-w-[180px]">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground">Total intereses pagados</p>
+                <p className="text-xl font-bold text-destructive">{formatMoney(resultado.totalInteresesPagados, config)}</p>
+              </CardContent>
+            </Card>
+            <Card className="flex-1 min-w-[200px]">
+              <CardContent className="pt-4 pb-3">
+                <p className="text-xs text-muted-foreground">Libre de deudas</p>
+                {resultado.fechaLibreDeDeudas ? (
+                  <div className="flex items-center gap-2">
+                    <p className="text-xl font-bold text-success">{resultado.fechaLibreDeDeudas}</p>
+                    <PartyPopper className="h-5 w-5 text-success" />
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No se alcanza en el rango simulado</p>
+                )}
+              </CardContent>
             </Card>
           </div>
 
