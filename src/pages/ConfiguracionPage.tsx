@@ -12,6 +12,11 @@ import {
 import { toast } from "sonner";
 import { useEffect } from "react";
 import CategoriasManager from "@/components/configuracion/CategoriasManager";
+import PresupuestosManager from "@/components/configuracion/PresupuestosManager";
+import IngresosManager from "@/components/configuracion/IngresosManager";
+import { PresupuestoCategoria, Ingreso, Gasto, Deuda } from "@/types";
+import { exportToCSV } from "@/lib/exportUtils";
+import { Download, Database } from "lucide-react";
 
 const configSchema = z.object({
   ingresoMensualNeto: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
@@ -30,9 +35,22 @@ interface Props {
   categorias?: CategoriaPersonalizada[];
   addCategoria?: (cat: Omit<CategoriaPersonalizada, "id" | "user_id" | "created_at">) => Promise<any>;
   deleteCategoria?: (id: string) => Promise<any>;
+  presupuestos?: PresupuestoCategoria[];
+  onSavePresupuesto?: (pres: Omit<PresupuestoCategoria, "id" | "user_id" | "created_at" | "updated_at">) => Promise<any>;
+  onDeletePresupuesto?: (id: string) => Promise<any>;
+  ingresos?: Ingreso[];
+  onAddIngreso?: (ing: Omit<Ingreso, "id" | "user_id" | "created_at">) => Promise<any>;
+  onDeleteIngreso?: (id: string) => Promise<any>;
+  gastos?: Gasto[];
+  deudas?: Deuda[];
 }
 
-export default function ConfiguracionPage({ config, onUpdate, categorias = [], addCategoria, deleteCategoria }: Props) {
+export default function ConfiguracionPage({ 
+  config, onUpdate, categorias = [], addCategoria, deleteCategoria,
+  presupuestos = [], onSavePresupuesto, onDeletePresupuesto,
+  ingresos = [], onAddIngreso, onDeleteIngreso,
+  gastos = [], deudas = []
+}: Props) {
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(configSchema),
     defaultValues: {
@@ -141,6 +159,57 @@ export default function ConfiguracionPage({ config, onUpdate, categorias = [], a
             onDelete={deleteCategoria} 
           />
         )}
+
+        {onSavePresupuesto && onDeletePresupuesto && (
+          <div className="md:col-span-2">
+            <PresupuestosManager
+              categorias={categorias}
+              presupuestos={presupuestos}
+              config={config}
+              onSave={onSavePresupuesto}
+              onDelete={onDeletePresupuesto}
+            />
+          </div>
+        )}
+
+        {onAddIngreso && onDeleteIngreso && (
+          <div className="md:col-span-2">
+            <IngresosManager
+              ingresos={ingresos}
+              config={config}
+              onAdd={onAddIngreso}
+              onDelete={onDeleteIngreso}
+            />
+          </div>
+        )}
+
+        {/* Gestión de Datos */}
+        <div className="md:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-primary" />
+                Gestión de Datos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <Button variant="outline" onClick={() => exportToCSV(gastos, "gastos")} disabled={gastos.length === 0}>
+                  <Download className="h-4 w-4 mr-2" /> Exportar Gastos
+                </Button>
+                <Button variant="outline" onClick={() => exportToCSV(deudas, "deudas")} disabled={deudas.length === 0}>
+                  <Download className="h-4 w-4 mr-2" /> Exportar Deudas
+                </Button>
+                <Button variant="outline" onClick={() => exportToCSV(ingresos, "ingresos")} disabled={ingresos.length === 0}>
+                  <Download className="h-4 w-4 mr-2" /> Exportar Ingresos
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4 italic">
+                La exportación se realizará en formato CSV compatible con Excel y Google Sheets.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

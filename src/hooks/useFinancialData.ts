@@ -7,7 +7,9 @@ import {
   loadDeudas, saveDeuda, updateDeuda as updateDeudaDb, deleteDeuda as deleteDeudaDb,
   loadConfiguracion, saveConfiguracion,
   loadCategorias, saveCategoria, updateCategoria as updateCategoriaDb, deleteCategoria as deleteCategoriaDb,
-  loadPagosDeuda, savePagoDeuda, updatePagoDeuda as updatePagoDeudaDb, deletePagoDeuda as deletePagoDeudaDb
+  loadPagosDeuda, savePagoDeuda, updatePagoDeuda as updatePagoDeudaDb, deletePagoDeuda as deletePagoDeudaDb,
+  loadPresupuestos, savePresupuesto, deletePresupuesto as deletePresupuestoDb,
+  loadIngresos, saveIngreso, updateIngreso as updateIngresoDb, deleteIngreso as deleteIngresoDb
 } from "@/services/storage";
 import {
   loadMetas, saveMeta, updateMeta as updateMetaDb, deleteMeta as deleteMetaDb,
@@ -61,6 +63,18 @@ export function useFinancialData() {
   const { data: pagosDeuda = [], isLoading: loadingPagos } = useQuery({
     queryKey: ["pagosDeuda", user?.id],
     queryFn: loadPagosDeuda,
+    enabled: !!user,
+  });
+
+  const { data: presupuestos = [], isLoading: loadingPresupuestos } = useQuery({
+    queryKey: ["presupuestos", user?.id],
+    queryFn: loadPresupuestos,
+    enabled: !!user,
+  });
+
+  const { data: ingresos = [], isLoading: loadingIngresos } = useQuery({
+    queryKey: ["ingresos", user?.id],
+    queryFn: loadIngresos,
     enabled: !!user,
   });
 
@@ -221,7 +235,59 @@ export function useFinancialData() {
     onError: (err: Error) => toast.error("Error eliminando pago: " + err.message),
   }).mutateAsync;
 
-  // Config Mutations
+  // Presupuestos Mutations
+  const addPresupuesto = useMutation({
+    mutationFn: async (pres: Parameters<typeof savePresupuesto>[0]) => {
+      if (!user) throw new Error("No user");
+      return savePresupuesto(pres, user.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["presupuestos", user?.id] });
+      toast.success("Presupuesto actualizado");
+    },
+    onError: (err: Error) => toast.error("Error guardando presupuesto: " + err.message),
+  }).mutateAsync;
+
+  const deletePresupuesto = useMutation({
+    mutationFn: deletePresupuestoDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["presupuestos", user?.id] });
+      toast.success("Presupuesto eliminado");
+    },
+    onError: (err: Error) => toast.error("Error eliminando presupuesto: " + err.message),
+  }).mutateAsync;
+
+  // Ingresos Mutations
+  const addIngreso = useMutation({
+    mutationFn: async (ing: Parameters<typeof saveIngreso>[0]) => {
+      if (!user) throw new Error("No user");
+      return saveIngreso(ing, user.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ingresos", user?.id] });
+      toast.success("Ingreso registrado");
+    },
+    onError: (err: Error) => toast.error("Error guardando ingreso: " + err.message),
+  }).mutateAsync;
+
+  const updateIngreso = useMutation({
+    mutationFn: updateIngresoDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ingresos", user?.id] });
+      toast.success("Ingreso actualizado");
+    },
+    onError: (err: Error) => toast.error("Error actualizando ingreso: " + err.message),
+  }).mutateAsync;
+
+  const deleteIngreso = useMutation({
+    mutationFn: deleteIngresoDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ingresos", user?.id] });
+      toast.success("Ingreso eliminado");
+    },
+    onError: (err: Error) => toast.error("Error eliminando ingreso: " + err.message),
+  }).mutateAsync;
+
   const updateConfig = useMutation({
     mutationFn: async (newConfig: Configuracion) => {
       if (!user) throw new Error("No user");
@@ -242,7 +308,10 @@ export function useFinancialData() {
     metas, addMeta, updateMeta, deleteMeta,
     categorias, addCategoria, updateCategoria, deleteCategoria,
     pagosDeuda, addPagoDeuda, updatePagoDeuda, deletePagoDeuda,
+    presupuestos, addPresupuesto, deletePresupuesto,
+    ingresos, addIngreso, updateIngreso, deleteIngreso,
     config, updateConfig,
-    loading, configLoaded,
+    loading: loadingGastos || loadingDeudas || loadingConfig || loadingMetas || loadingCategorias || loadingPagos || loadingPresupuestos || loadingIngresos,
+    configLoaded,
   };
 }

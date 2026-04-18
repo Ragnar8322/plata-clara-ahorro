@@ -144,3 +144,22 @@ export interface PagoDeuda {
   notas?: string;
   created_at?: string;
 }
+
+export interface PresupuestoCategoria {
+  id: string;
+  user_id?: string;
+  categoria: string;
+  limite_mensual: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface Ingreso {
+  id: string;
+  user_id?: string;
+  nombre: string;
+  monto: number;
+  categoria?: string;
+  frecuencia?: string;
+  created_at?: string;
+}

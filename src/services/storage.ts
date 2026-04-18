@@ -231,8 +231,9 @@ export async function saveConfiguracion(config: Configuracion, userId: string): 
   };
 }
 
+import { CategoriaPersonalizada, PagoDeuda, PresupuestoCategoria } from "@/types";
+
 // ─── Categorías Personalizadas ───
-import { CategoriaPersonalizada, PagoDeuda } from "@/types";
 
 export async function loadCategorias(): Promise<CategoriaPersonalizada[]> {
   const { data, error } = await supabase
@@ -283,6 +284,7 @@ export async function deleteCategoria(id: string): Promise<void> {
 }
 
 // ─── Pagos de Deuda ───
+
 export async function loadPagosDeuda(): Promise<PagoDeuda[]> {
   const { data, error } = await supabase
     .from("pagos_deudas")
@@ -336,5 +338,108 @@ export async function updatePagoDeuda(pago: PagoDeuda): Promise<void> {
 
 export async function deletePagoDeuda(id: string): Promise<void> {
   const { error } = await supabase.from("pagos_deudas").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Presupuestos por Categoría ───
+
+export async function loadPresupuestos(): Promise<PresupuestoCategoria[]> {
+  const { data, error } = await supabase
+    .from("presupuestos_categorias")
+    .select("*");
+
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    user_id: row.user_id,
+    categoria: row.categoria,
+    limite_mensual: Number(row.limite_mensual),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }));
+}
+
+export async function savePresupuesto(pres: Omit<PresupuestoCategoria, "id" | "user_id" | "created_at" | "updated_at">, userId: string): Promise<PresupuestoCategoria> {
+  const { data, error } = await supabase
+    .from("presupuestos_categorias")
+    .upsert({
+      user_id: userId,
+      categoria: pres.categoria,
+      limite_mensual: pres.limite_mensual,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id, categoria" })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return {
+    ...data,
+    limite_mensual: Number(data.limite_mensual)
+  };
+}
+
+export async function deletePresupuesto(id: string): Promise<void> {
+  const { error } = await supabase.from("presupuestos_categorias").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Ingresos (Múltiples Fuentes) ───
+import { Ingreso } from "@/types";
+
+export async function loadIngresos(): Promise<Ingreso[]> {
+  const { data, error } = await supabase
+    .from("ingresos")
+    .select("*")
+    .order("created_at", { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    user_id: row.user_id,
+    nombre: row.nombre,
+    monto: Number(row.monto),
+    categoria: row.categoria,
+    frecuencia: row.frecuencia,
+    created_at: row.created_at,
+  }));
+}
+
+export async function saveIngreso(ingreso: Omit<Ingreso, "id" | "user_id" | "created_at">, userId: string): Promise<Ingreso> {
+  const { data, error } = await supabase
+    .from("ingresos")
+    .insert({
+      user_id: userId,
+      nombre: ingreso.nombre,
+      monto: ingreso.monto,
+      categoria: ingreso.categoria,
+      frecuencia: ingreso.frecuencia,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return {
+    ...data,
+    monto: Number(data.monto)
+  };
+}
+
+export async function updateIngreso(ingreso: Ingreso): Promise<void> {
+  const { error } = await supabase
+    .from("ingresos")
+    .update({
+      nombre: ingreso.nombre,
+      monto: ingreso.monto,
+      categoria: ingreso.categoria,
+      frecuencia: ingreso.frecuencia,
+    })
+    .eq("id", ingreso.id);
+  if (error) throw error;
+}
+
+export async function deleteIngreso(id: string): Promise<void> {
+  const { error } = await supabase.from("ingresos").delete().eq("id", id);
   if (error) throw error;
 }

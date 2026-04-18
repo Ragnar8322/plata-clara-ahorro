@@ -10,6 +10,10 @@ import AporteDialog from "./AporteDialog";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogHeader, DialogFooter } from "@/components/ui/dialog";
 import MetaForm from "./MetaForm";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Calendar } from "lucide-react";
+import { addMonths, format } from "date-fns";
+import { es } from "date-fns/locale";
 
 interface Props {
   meta: MetaAhorro;
@@ -24,6 +28,10 @@ export default function MetaCard({ meta, onUpdate, onDelete }: Props) {
 
   const porcentaje = Math.min(100, Math.round((meta.monto_actual / meta.monto_objetivo) * 100));
   const isCompletada = meta.monto_actual >= meta.monto_objetivo;
+  const falta = Math.max(0, meta.monto_objetivo - meta.monto_actual);
+
+  const mesesRestantes = meta.aporte_mensual_planeado > 0 ? Math.ceil(falta / meta.aporte_mensual_planeado) : null;
+  const fechaEstimada = mesesRestantes !== null ? addMonths(new Date(), mesesRestantes) : null;
 
   const handleAporte = async (monto: number) => {
     await onUpdate({
@@ -47,7 +55,16 @@ export default function MetaCard({ meta, onUpdate, onDelete }: Props) {
             <span>{meta.emoji}</span> {meta.nombre}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            {isCompletada ? "¡Meta alcanzada! 🎉" : meta.fecha_objetivo ? `Para: ${meta.fecha_objetivo}` : "Sin fecha límite"}
+            {isCompletada 
+              ? "¡Meta alcanzada! 🎉" 
+              : fechaEstimada 
+                ? (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    Est. {format(fechaEstimada, "MMM yyyy", { locale: es })}
+                  </span>
+                )
+                : meta.fecha_objetivo ? `Para: ${meta.fecha_objetivo}` : "Sin fecha límite"}
           </p>
         </div>
         <div className="flex gap-1">
@@ -94,8 +111,13 @@ export default function MetaCard({ meta, onUpdate, onDelete }: Props) {
             <span className="text-muted-foreground">de {formatMoney(meta.monto_objetivo, config)}</span>
           </div>
           <Progress value={porcentaje} className="h-2" indicatorColor={meta.color} />
-          <div className="text-right text-xs text-muted-foreground font-semibold">
-            {porcentaje}%
+          <div className="flex justify-between items-center text-[10px] text-muted-foreground font-semibold">
+            <span>{porcentaje}%</span>
+            {meta.aporte_mensual_planeado > 0 && (
+              <Badge variant="outline" className="text-[10px] h-4 py-0">
+                +{formatMoney(meta.aporte_mensual_planeado, config)}/mes
+              </Badge>
+            )}
           </div>
         </div>
         

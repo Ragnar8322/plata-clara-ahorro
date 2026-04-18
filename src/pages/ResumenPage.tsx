@@ -1,5 +1,4 @@
-import { useMemo } from "react";
-import { Gasto, Deuda, Configuracion, MetaAhorro } from "@/types";
+import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria } from "@/types";
 import { formatMoney } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -7,15 +6,19 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, Cell,
   LineChart, Line, CartesianGrid
 } from "recharts";
+import { AlertCircle, Target } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Props {
   gastos: Gasto[];
   deudas: Deuda[];
   metas?: MetaAhorro[];
+  presupuestos?: PresupuestoCategoria[];
+  ingresos?: Ingreso[];
   config: Configuracion;
 }
 
-export default function ResumenPage({ gastos, deudas, metas = [], config }: Props) {
+export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], config }: Props) {
   const now = new Date();
   const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -33,7 +36,14 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
   const totalDeudas = useMemo(() => deudasActivas.reduce((s, d) => s + d.saldoActual, 0), [deudasActivas]);
   const totalMinimos = useMemo(() => deudasActivas.reduce((s, d) => s + d.pagoMinimoMensual, 0), [deudasActivas]);
 
-  const margen = config.ingresoMensualNeto - totalGastosMes - totalMinimos;
+  const ingresoMensualTotal = useMemo(() => {
+    if (ingresos.length > 0) {
+      return ingresos.reduce((sum, ing) => sum + ing.monto, 0);
+    }
+    return config.ingresoMensualNeto;
+  }, [ingresos, config.ingresoMensualNeto]);
+
+  const margen = ingresoMensualTotal - totalGastosMes - totalMinimos;
 
   const metasActivas = useMemo(() => metas.filter((m) => m.estado === "En progreso"), [metas]);
   const progresoMetas = useMemo(() => {
@@ -45,10 +55,10 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
 
   const healthScore = useMemo(() => {
     let score = 0;
-    const ingresos = config.ingresoMensualNeto || 1;
+    const ingresosVal = ingresoMensualTotal || 1;
 
     // 1. Endeudamiento (30 pts max)
-    const ratioDeuda = totalMinimos / ingresos;
+    const ratioDeuda = totalMinimos / ingresosVal;
     if (ratioDeuda <= 0.15) score += 30;
     else if (ratioDeuda <= 0.3) score += 20;
     else if (ratioDeuda <= 0.45) score += 10;
@@ -70,7 +80,7 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
     }
 
     return score;
-  }, [config.ingresoMensualNeto, totalMinimos, margen, metasActivas.length, progresoMetas]);
+  }, [ingresoMensualTotal, totalMinimos, margen, metasActivas.length, progresoMetas]);
 
   let scoreLabel = "Crítico";
   let scoreColor = "bg-destructive";
@@ -89,6 +99,28 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
     scoreColor = "bg-warning";
     scoreTextClass = "text-warning";
   }
+
+  // Alertas de presupuesto
+  const alertasPresupuesto = useMemo(() => {
+    if (!presupuestos.length) return [];
+    
+    // Totales por categoría mes actual
+    const totales: Record<string, number> = {};
+    gastosMesActual.forEach(g => {
+      totales[g.categoria] = (totales[g.categoria] || 0) + g.monto;
+    });
+
+    return presupuestos.map(p => {
+      const gastado = totales[p.categoria] || 0;
+      const porcentaje = p.limite_mensual > 0 ? (gastado / p.limite_mensual) : 0;
+      return {
+        ...p,
+        gastado,
+        porcentaje
+      };
+    }).filter(a => a.porcentaje >= 0.8) // Solo mostrar alertas del 80% o más
+      .sort((a, b) => b.porcentaje - a.porcentaje);
+  }, [gastosMesActual, presupuestos]);
 
   // Top 3 categories
   const topCategorias = useMemo(() => {
@@ -109,7 +141,7 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
 
   // Chart data (Comparativa)
   const chartData = [
-    { name: "Ingreso", valor: config.ingresoMensualNeto },
+    { name: "Ingreso", valor: ingresoMensualTotal },
     { name: "Gastos", valor: totalGastosMes },
     { name: "Pagos deudas", valor: totalMinimos },
   ];
@@ -151,6 +183,33 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
     <div className="space-y-6">
       <h2 className="text-xl font-bold">Resumen</h2>
 
+      {/* Alertas de Presupuesto */}
+      {alertasPresupuesto.length > 0 && (
+        <div className="space-y-3">
+          {alertasPresupuesto.map(alerta => {
+            const esExcedido = alerta.porcentaje >= 1;
+            return (
+              <Alert key={alerta.id} variant={esExcedido ? "destructive" : "default"} className={esExcedido ? "" : "border-warning bg-warning/10 text-warning-foreground"}>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle className="font-bold">
+                  {esExcedido ? "Presupuesto Excedido" : "Alerta de Presupuesto"} en {alerta.categoria}
+                </AlertTitle>
+                <AlertDescription className="flex flex-col gap-1">
+                  <span>
+                    Has gastado {formatMoney(alerta.gastado, config)} de un límite de {formatMoney(alerta.limite_mensual, config)}.
+                  </span>
+                  <Progress 
+                    value={Math.min(alerta.porcentaje * 100, 100)} 
+                    className="h-2 mt-1"
+                    indicatorColor={esExcedido ? "bg-destructive" : "bg-warning"}
+                  />
+                </AlertDescription>
+              </Alert>
+            );
+          })}
+        </div>
+      )}
+
       {/* Saldo de Salud Financiera */}
       <Card>
         <CardContent className="pt-6 pb-6">
@@ -181,7 +240,7 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
       <Card>
         <CardContent className="pt-4 pb-3">
           <p className="text-sm text-muted-foreground">
-            Ingreso ({formatMoney(config.ingresoMensualNeto, config)}) − Gastos ({formatMoney(totalGastosMes, config)}) − Pagos mín. deudas ({formatMoney(totalMinimos, config)}) =
+            Ingreso ({formatMoney(ingresoMensualTotal, config)}) − Gastos ({formatMoney(totalGastosMes, config)}) − Pagos mín. deudas ({formatMoney(totalMinimos, config)}) =
           </p>
           <p className={`text-2xl font-bold mt-1 ${margen >= 0 ? "text-success" : "text-destructive"}`}>
             {formatMoney(margen, config)} margen disponible
@@ -193,8 +252,8 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-4 pb-3">
-            <p className="text-xs text-muted-foreground">Ingreso mensual neto</p>
-            <p className="text-xl font-bold">{formatMoney(config.ingresoMensualNeto, config)}</p>
+            <p className="text-xs text-muted-foreground">Ingreso mensual total</p>
+            <p className="text-xl font-bold">{formatMoney(ingresoMensualTotal, config)}</p>
           </CardContent>
         </Card>
         <Card>
