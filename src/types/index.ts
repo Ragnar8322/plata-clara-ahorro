@@ -55,7 +55,7 @@ export interface Configuracion {
   estrategiaOrdenDeudas: EstrategiaOrden;
 }
 
-export const CATEGORIAS_GASTO_DEFAULT = [
+export const CATEGORIAS_GASTO = [
   "Vivienda", "Alimentación", "Transporte", "Servicios", "Salud",
   "Entretenimiento", "Educación", "Deudas", "Ahorro", "Otros",
 ];
