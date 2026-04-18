@@ -39,12 +39,14 @@ function ProtectedRoutes() {
 }
 
 function AppContent() {
+  const {
     gastos, addGasto, updateGasto, deleteGasto,
     deudas, addDeuda, updateDeuda, deleteDeuda,
     metas,
     categorias, addCategoria, updateCategoria, deleteCategoria,
     pagosDeuda, addPagoDeuda, updatePagoDeuda, deletePagoDeuda,
     presupuestos, addPresupuesto, deletePresupuesto,
+    ingresos, addIngreso, updateIngreso, deleteIngreso,
     config, updateConfig,
     loading, configLoaded,
   } = useFinancialData();
