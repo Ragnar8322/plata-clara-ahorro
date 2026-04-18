@@ -41,6 +41,7 @@ function AppContent() {
   const {
     gastos, addGasto, updateGasto, deleteGasto,
     deudas, addDeuda, updateDeuda, deleteDeuda,
+    metas,
     config, updateConfig,
     loading, configLoaded,
   } = useFinancialData();
@@ -70,7 +71,7 @@ function AppContent() {
   return (
     <Layout>
       <Routes>
-        <Route path="/" element={<ResumenPage gastos={gastos} deudas={deudas} config={config} />} />
+        <Route path="/" element={<ResumenPage gastos={gastos} deudas={deudas} metas={metas} config={config} />} />
         <Route path="/gastos" element={<GastosPage gastos={gastos} config={config} onAdd={addGasto} onUpdate={updateGasto} onDelete={deleteGasto} />} />
         <Route path="/deudas" element={<DeudasPage deudas={deudas} config={config} onAdd={addDeuda} onUpdate={updateDeuda} onDelete={deleteDeuda} />} />
         <Route path="/metas" element={<MetasPage />} />
