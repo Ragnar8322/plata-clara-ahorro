@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso } from "@/types";
 import { formatMoney } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -172,6 +174,3 @@ export default function ReporteImprimible({
   );
 }
 
-// Helper imports needed for the component
-import { format } from "date-fns";
-import { es } from "date-fns/locale";

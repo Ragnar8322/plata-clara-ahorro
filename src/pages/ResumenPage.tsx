@@ -9,6 +9,7 @@ import {
 import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useMemo } from "react";
+import { calculateHealthScore } from "@/lib/financialMetrics";
 
 interface Props {
   gastos: Gasto[];
@@ -46,42 +47,17 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
 
   const margen = ingresoMensualTotal - totalGastosMes - totalMinimos;
 
-  const metasActivas = useMemo(() => metas.filter((m) => m.estado === "En progreso"), [metas]);
+  const metasActivas = useMemo(() => metas.filter((m) => m.activa), [metas]);
   const progresoMetas = useMemo(() => {
     if (metasActivas.length === 0) return 0;
-    const totalActual = metasActivas.reduce((s, m) => s + m.montoActual, 0);
-    const totalObjetivo = metasActivas.reduce((s, m) => s + m.montoObjetivo, 0);
+    const totalActual = metasActivas.reduce((s, m) => s + m.monto_actual, 0);
+    const totalObjetivo = metasActivas.reduce((s, m) => s + m.monto_objetivo, 0);
     return totalObjetivo > 0 ? (totalActual / totalObjetivo) : 0;
   }, [metasActivas]);
 
-  const healthScore = useMemo(() => {
-    let score = 0;
-    const ingresosVal = ingresoMensualTotal || 1;
-
-    // 1. Endeudamiento (30 pts max)
-    const ratioDeuda = totalMinimos / ingresosVal;
-    if (ratioDeuda <= 0.15) score += 30;
-    else if (ratioDeuda <= 0.3) score += 20;
-    else if (ratioDeuda <= 0.45) score += 10;
-
-    // 2. Capacidad Ahorro (30 pts max)
-    const ratioAhorro = margen / ingresos;
-    if (ratioAhorro >= 0.2) score += 30;
-    else if (ratioAhorro >= 0.1) score += 20;
-    else if (ratioAhorro > 0) score += 10;
-
-    // 3. Progreso Metas (40 pts max)
-    if (metasActivas.length === 0) {
-      score += 15; 
-    } else {
-      if (progresoMetas >= 0.5) score += 40;
-      else if (progresoMetas >= 0.25) score += 30;
-      else if (progresoMetas > 0) score += 20;
-      else score += 10;
-    }
-
-    return score;
-  }, [ingresoMensualTotal, totalMinimos, margen, metasActivas.length, progresoMetas]);
+  const healthScore = useMemo(() => 
+    calculateHealthScore(ingresos, deudas, metas, gastos, mesActual)
+  , [ingresos, deudas, metas, gastos, mesActual]);
 
   let scoreLabel = "Crítico";
   let scoreColor = "bg-destructive";

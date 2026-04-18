@@ -3,8 +3,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useMemo } from "react";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useFinancialData } from "@/hooks/useFinancialData";
+import { calculateHealthScore } from "@/lib/financialMetrics";
 import Layout from "@/components/Layout";
 import ResumenPage from "@/pages/ResumenPage";
 import ReporteImprimible from "@/components/ReporteImprimible";
@@ -84,6 +86,13 @@ function AppContent() {
     );
   }
 
+  const now = new Date();
+  const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+  const healthScore = useMemo(() => 
+    calculateHealthScore(ingresos, deudas, metas, gastos, mesActual)
+  , [ingresos, deudas, metas, gastos, mesActual]);
+
   return (
     <Layout>
       <Routes>
@@ -117,7 +126,7 @@ function AppContent() {
             presupuestos={presupuestos}
             ingresos={ingresos}
             config={config}
-            healthScore={75}
+            healthScore={healthScore}
           />
         } />
         <Route path="*" element={<NotFound />} />
