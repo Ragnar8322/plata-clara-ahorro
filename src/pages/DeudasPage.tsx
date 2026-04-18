@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Deuda, Configuracion } from "@/types";
+import { Deuda, Configuracion, PagoDeuda } from "@/types";
 import DeudaForm from "@/components/deudas/DeudaForm";
 import DeudasTable from "@/components/deudas/DeudasTable";
 import { Button } from "@/components/ui/button";
@@ -7,13 +7,16 @@ import { useNavigate } from "react-router-dom";
 
 interface Props {
   deudas: Deuda[];
+  pagos?: PagoDeuda[];
   config: Configuracion;
   onAdd: (d: Omit<Deuda, "id">) => void;
   onUpdate: (d: Deuda) => void;
   onDelete: (id: string) => void;
+  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
+  onDeletePago?: (id: string) => Promise<any>;
 }
 
-export default function DeudasPage({ deudas, config, onAdd, onUpdate, onDelete }: Props) {
+export default function DeudasPage({ deudas, pagos = [], config, onAdd, onUpdate, onDelete, onAddPago, onDeletePago }: Props) {
   const [editando, setEditando] = useState<Deuda | null>(null);
   const navigate = useNavigate();
 
@@ -41,9 +44,12 @@ export default function DeudasPage({ deudas, config, onAdd, onUpdate, onDelete }
       />
       <DeudasTable
         deudas={deudas}
+        pagos={pagos}
         config={config}
         onEdit={setEditando}
         onDelete={onDelete}
+        onAddPago={onAddPago}
+        onDeletePago={onDeletePago}
       />
     </div>
   );

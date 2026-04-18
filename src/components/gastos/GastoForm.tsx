@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Gasto, CATEGORIAS_GASTO, METODOS_PAGO, TIPOS_GASTO, FRECUENCIAS } from "@/types";
+import { Gasto, CATEGORIAS_GASTO_DEFAULT, METODOS_PAGO, TIPOS_GASTO, FRECUENCIAS, CategoriaPersonalizada } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,9 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const gastoSchema = z.object({
   fecha: z.string().min(1, "La fecha es obligatoria"),
-  categoria: z.enum(CATEGORIAS_GASTO as [string, ...string[]], {
-    required_error: "La categoría es obligatoria",
-  }),
+  categoria: z.string().min(1, "La categoría es obligatoria"),
   descripcion: z.string().min(1, "La descripción es obligatoria"),
   monto: z.coerce.number().min(0.01, "El monto debe ser mayor a 0"),
   metodoPago: z.enum(METODOS_PAGO as [string, ...string[]], {
@@ -37,16 +35,17 @@ type FormValues = z.infer<typeof gastoSchema>;
 
 interface GastoFormProps {
   gastoEditar?: Gasto | null;
+  categorias?: CategoriaPersonalizada[];
   onSubmit: (gasto: Omit<Gasto, "id"> & { id?: string }) => void;
   onCancel?: () => void;
 }
 
-export default function GastoForm({ gastoEditar, onSubmit, onCancel }: GastoFormProps) {
+export default function GastoForm({ gastoEditar, categorias = [], onSubmit, onCancel }: GastoFormProps) {
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(gastoSchema),
     defaultValues: {
       fecha: new Date().toISOString().split("T")[0],
-      categoria: undefined,
+      categoria: "",
       descripcion: "",
       monto: undefined as unknown as number,
       metodoPago: undefined,
@@ -71,7 +70,7 @@ export default function GastoForm({ gastoEditar, onSubmit, onCancel }: GastoForm
     } else {
       reset({
         fecha: new Date().toISOString().split("T")[0],
-        categoria: undefined as any,
+        categoria: "",
         descripcion: "",
         monto: undefined as any,
         metodoPago: undefined as any,
@@ -105,6 +104,16 @@ export default function GastoForm({ gastoEditar, onSubmit, onCancel }: GastoForm
     }
   };
 
+  const opcionesCategoria = useMemo(() => {
+    const list = [...CATEGORIAS_GASTO_DEFAULT];
+    categorias.forEach(c => {
+      if (!list.includes(c.nombre)) {
+        list.push(c.nombre);
+      }
+    });
+    return list.sort();
+  }, [categorias]);
+
   return (
     <Card>
       <CardHeader className="pb-4">
@@ -129,7 +138,7 @@ export default function GastoForm({ gastoEditar, onSubmit, onCancel }: GastoForm
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                   <SelectContent>
-                    {CATEGORIAS_GASTO.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {opcionesCategoria.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               )}

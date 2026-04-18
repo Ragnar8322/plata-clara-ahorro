@@ -6,6 +6,8 @@ import {
   loadGastos, saveGasto, updateGasto as updateGastoDb, deleteGasto as deleteGastoDb,
   loadDeudas, saveDeuda, updateDeuda as updateDeudaDb, deleteDeuda as deleteDeudaDb,
   loadConfiguracion, saveConfiguracion,
+  loadCategorias, saveCategoria, updateCategoria as updateCategoriaDb, deleteCategoria as deleteCategoriaDb,
+  loadPagosDeuda, savePagoDeuda, updatePagoDeuda as updatePagoDeudaDb, deletePagoDeuda as deletePagoDeudaDb
 } from "@/services/storage";
 import {
   loadMetas, saveMeta, updateMeta as updateMetaDb, deleteMeta as deleteMetaDb,
@@ -47,6 +49,18 @@ export function useFinancialData() {
   const { data: metas = [], isLoading: loadingMetas } = useQuery({
     queryKey: ["metas", user?.id],
     queryFn: loadMetas,
+    enabled: !!user,
+  });
+
+  const { data: categorias = [], isLoading: loadingCategorias } = useQuery({
+    queryKey: ["categorias", user?.id],
+    queryFn: loadCategorias,
+    enabled: !!user,
+  });
+
+  const { data: pagosDeuda = [], isLoading: loadingPagos } = useQuery({
+    queryKey: ["pagosDeuda", user?.id],
+    queryFn: loadPagosDeuda,
     enabled: !!user,
   });
 
@@ -114,7 +128,7 @@ export function useFinancialData() {
 
   // Metas Mutations
   const addMeta = useMutation({
-    mutationFn: async (meta: Omit<MetaAhorro, "id" | "user_id" | "created_at" | "updated_at">) => {
+    mutationFn: async (meta: Parameters<typeof saveMeta>[0]) => {
       if (!user) throw new Error("No user");
       return saveMeta(meta, user.id);
     },
@@ -143,6 +157,70 @@ export function useFinancialData() {
     onError: (err: Error) => toast.error("Error eliminando meta: " + err.message),
   }).mutateAsync;
 
+  // Categorías Mutations
+  const addCategoria = useMutation({
+    mutationFn: async (cat: Parameters<typeof saveCategoria>[0]) => {
+      if (!user) throw new Error("No user");
+      return saveCategoria(cat, user.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categorias", user?.id] });
+      toast.success("Categoría creada");
+    },
+    onError: (err: Error) => toast.error("Error creando categoría: " + err.message),
+  }).mutateAsync;
+
+  const updateCategoria = useMutation({
+    mutationFn: updateCategoriaDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categorias", user?.id] });
+      toast.success("Categoría actualizada");
+    },
+    onError: (err: Error) => toast.error("Error actualizando categoría: " + err.message),
+  }).mutateAsync;
+
+  const deleteCategoria = useMutation({
+    mutationFn: deleteCategoriaDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categorias", user?.id] });
+      toast.success("Categoría eliminada");
+    },
+    onError: (err: Error) => toast.error("Error eliminando categoría: " + err.message),
+  }).mutateAsync;
+
+  // Pagos de Deuda Mutations
+  const addPagoDeuda = useMutation({
+    mutationFn: async (pago: Parameters<typeof savePagoDeuda>[0]) => {
+      if (!user) throw new Error("No user");
+      return savePagoDeuda(pago, user.id);
+    },
+    onSuccess: () => {
+      // Invalidate both pagos and deudas (trigger affects deudas table)
+      queryClient.invalidateQueries({ queryKey: ["pagosDeuda", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["deudas", user?.id] });
+      toast.success("Pago registrado");
+    },
+    onError: (err: Error) => toast.error("Error registrando pago: " + err.message),
+  }).mutateAsync;
+
+  const updatePagoDeuda = useMutation({
+    mutationFn: updatePagoDeudaDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pagosDeuda", user?.id] });
+      toast.success("Pago actualizado");
+    },
+    onError: (err: Error) => toast.error("Error actualizando pago: " + err.message),
+  }).mutateAsync;
+
+  const deletePagoDeuda = useMutation({
+    mutationFn: deletePagoDeudaDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pagosDeuda", user?.id] });
+      toast.success("Pago eliminado");
+    },
+    onError: (err: Error) => toast.error("Error eliminando pago: " + err.message),
+  }).mutateAsync;
+
   // Config Mutations
   const updateConfig = useMutation({
     mutationFn: async (newConfig: Configuracion) => {
@@ -155,13 +233,15 @@ export function useFinancialData() {
     onError: (err: Error) => toast.error("Error guardando configuración: " + err.message),
   }).mutateAsync;
 
-  const loading = loadingGastos || loadingDeudas || loadingConfig || loadingMetas;
+  const loading = loadingGastos || loadingDeudas || loadingConfig || loadingMetas || loadingCategorias || loadingPagos;
   const configLoaded = config.id !== "default";
 
   return {
     gastos, addGasto, updateGasto, deleteGasto,
     deudas, addDeuda, updateDeuda, deleteDeuda,
     metas, addMeta, updateMeta, deleteMeta,
+    categorias, addCategoria, updateCategoria, deleteCategoria,
+    pagosDeuda, addPagoDeuda, updatePagoDeuda, deletePagoDeuda,
     config, updateConfig,
     loading, configLoaded,
   };

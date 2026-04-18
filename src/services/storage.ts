@@ -230,3 +230,111 @@ export async function saveConfiguracion(config: Configuracion, userId: string): 
     estrategiaOrdenDeudas: data.estrategia_orden_deudas as EstrategiaOrden,
   };
 }
+
+// ─── Categorías Personalizadas ───
+import { CategoriaPersonalizada, PagoDeuda } from "@/types";
+
+export async function loadCategorias(): Promise<CategoriaPersonalizada[]> {
+  const { data, error } = await supabase
+    .from("categorias_gasto")
+    .select("*")
+    .order("nombre", { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    user_id: row.user_id,
+    nombre: row.nombre,
+    color: row.color,
+    created_at: row.created_at,
+  }));
+}
+
+export async function saveCategoria(cat: Omit<CategoriaPersonalizada, "id" | "user_id" | "created_at">, userId: string): Promise<CategoriaPersonalizada> {
+  const { data, error } = await supabase
+    .from("categorias_gasto")
+    .insert({
+      user_id: userId,
+      nombre: cat.nombre,
+      color: cat.color,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateCategoria(cat: CategoriaPersonalizada): Promise<void> {
+  const { error } = await supabase
+    .from("categorias_gasto")
+    .update({
+      nombre: cat.nombre,
+      color: cat.color,
+    })
+    .eq("id", cat.id);
+  if (error) throw error;
+}
+
+export async function deleteCategoria(id: string): Promise<void> {
+  const { error } = await supabase.from("categorias_gasto").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Pagos de Deuda ───
+export async function loadPagosDeuda(): Promise<PagoDeuda[]> {
+  const { data, error } = await supabase
+    .from("pagos_deudas")
+    .select("*")
+    .order("fecha", { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((row) => ({
+    id: row.id,
+    user_id: row.user_id,
+    deuda_id: row.deuda_id,
+    monto: Number(row.monto),
+    fecha: row.fecha,
+    notas: row.notas,
+    created_at: row.created_at,
+  }));
+}
+
+export async function savePagoDeuda(pago: Omit<PagoDeuda, "id" | "user_id" | "created_at">, userId: string): Promise<PagoDeuda> {
+  const { data, error } = await supabase
+    .from("pagos_deudas")
+    .insert({
+      user_id: userId,
+      deuda_id: pago.deuda_id,
+      monto: pago.monto,
+      fecha: pago.fecha,
+      notas: pago.notas,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return {
+    ...data,
+    monto: Number(data.monto)
+  };
+}
+
+export async function updatePagoDeuda(pago: PagoDeuda): Promise<void> {
+  const { error } = await supabase
+    .from("pagos_deudas")
+    .update({
+      monto: pago.monto,
+      fecha: pago.fecha,
+      notas: pago.notas,
+    })
+    .eq("id", pago.id);
+  if (error) throw error;
+}
+
+export async function deletePagoDeuda(id: string): Promise<void> {
+  const { error } = await supabase.from("pagos_deudas").delete().eq("id", id);
+  if (error) throw error;
+}

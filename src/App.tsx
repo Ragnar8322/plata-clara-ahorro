@@ -42,6 +42,7 @@ function AppContent() {
     gastos, addGasto, updateGasto, deleteGasto,
     deudas, addDeuda, updateDeuda, deleteDeuda,
     metas,
+    categorias, addCategoria, updateCategoria, deleteCategoria,
     config, updateConfig,
     loading, configLoaded,
   } = useFinancialData();
@@ -61,7 +62,7 @@ function AppContent() {
     return (
       <Layout>
         <Routes>
-          <Route path="/configuracion" element={<ConfiguracionPage config={config} onUpdate={updateConfig} />} />
+          <Route path="/configuracion" element={<ConfiguracionPage config={config} onUpdate={updateConfig} categorias={categorias} addCategoria={addCategoria} deleteCategoria={deleteCategoria} />} />
           <Route path="*" element={<Navigate to="/configuracion" replace />} />
         </Routes>
       </Layout>
@@ -72,11 +73,11 @@ function AppContent() {
     <Layout>
       <Routes>
         <Route path="/" element={<ResumenPage gastos={gastos} deudas={deudas} metas={metas} config={config} />} />
-        <Route path="/gastos" element={<GastosPage gastos={gastos} config={config} onAdd={addGasto} onUpdate={updateGasto} onDelete={deleteGasto} />} />
-        <Route path="/deudas" element={<DeudasPage deudas={deudas} config={config} onAdd={addDeuda} onUpdate={updateDeuda} onDelete={deleteDeuda} />} />
+        <Route path="/gastos" element={<GastosPage gastos={gastos} config={config} onAdd={addGasto} onUpdate={updateGasto} onDelete={deleteGasto} categorias={categorias} />} />
+        <Route path="/deudas" element={<DeudasPage deudas={deudas} pagos={pagosDeuda} config={config} onAdd={addDeuda} onUpdate={updateDeuda} onDelete={deleteDeuda} onAddPago={addPagoDeuda} onDeletePago={deletePagoDeuda} />} />
         <Route path="/metas" element={<MetasPage />} />
         <Route path="/proyeccion" element={<ProyeccionPage deudas={deudas} config={config} />} />
-        <Route path="/configuracion" element={<ConfiguracionPage config={config} onUpdate={updateConfig} />} />
+        <Route path="/configuracion" element={<ConfiguracionPage config={config} onUpdate={updateConfig} categorias={categorias} addCategoria={addCategoria} deleteCategoria={deleteCategoria} />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Layout>

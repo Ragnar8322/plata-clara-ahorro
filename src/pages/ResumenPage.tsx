@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { Gasto, Deuda, Configuracion, MetaAhorro } from "@/types";
 import { formatMoney } from "@/lib/formatters";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, Cell,
+  LineChart, Line, CartesianGrid
 } from "recharts";
 
 interface Props {
@@ -106,13 +107,45 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
     [deudasActivas]
   );
 
-  // Chart data
+  // Chart data (Comparativa)
   const chartData = [
     { name: "Ingreso", valor: config.ingresoMensualNeto },
     { name: "Gastos", valor: totalGastosMes },
     { name: "Pagos deudas", valor: totalMinimos },
   ];
   const barColors = ["hsl(215, 70%, 48%)", "hsl(38, 92%, 50%)", "hsl(0, 72%, 51%)"];
+
+  // Tendencia Histórica de Gastos (Últimos 6 meses)
+  const tendenciaGastos = useMemo(() => {
+    const map: Record<string, number> = {};
+    const d = new Date();
+    d.setDate(1);
+    
+    // Inicializar últimos 6 meses en 0
+    for(let i=5; i>=0; i--) {
+      const past = new Date(d.getFullYear(), d.getMonth() - i, 1);
+      const key = `${past.getFullYear()}-${String(past.getMonth() + 1).padStart(2, "0")}`;
+      map[key] = 0;
+    }
+
+    gastos.forEach(g => {
+      const key = g.fecha.substring(0, 7); // yyyy-mm
+      if (map[key] !== undefined) {
+        map[key] += g.monto;
+      }
+    });
+
+    const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    
+    return Object.entries(map).map(([key, val]) => {
+      const [year, month] = key.split("-");
+      return {
+        key,
+        name: monthNames[parseInt(month) - 1],
+        Gastos: val
+      }
+    });
+  }, [gastos]);
 
   return (
     <div className="space-y-6">
@@ -184,20 +217,41 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
         </Card>
       </div>
 
-      {/* Chart + lists */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        {/* Chart */}
+      {/* Tendencias y Comparativa */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Chart Tendencia */}
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Comparativa mensual</CardTitle>
+            <CardTitle className="text-base">Histórico de Gastos (6 meses)</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">Evolución de tus gastos mensuales</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={chartData}>
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={tendenciaGastos} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${config.monedaSimbolo}${(v / 1000000).toFixed(1)}M`} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${config.monedaSimbolo}${(v / 1000).toFixed(0)}k`} />
                 <RTooltip formatter={(value: number) => formatMoney(value, config)} />
-                <Bar dataKey="valor" radius={[4, 4, 0, 0]}>
+                <Line type="monotone" dataKey="Gastos" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Chart Comparativa */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Comparativa actual</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">Ingresos vs Salidas (Mes actual)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${config.monedaSimbolo}${(v / 1000).toFixed(0)}k`} />
+                <RTooltip formatter={(value: number) => formatMoney(value, config)} />
+                <Bar dataKey="valor" radius={[4, 4, 0, 0]} maxBarSize={60}>
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={barColors[i]} />
                   ))}
@@ -206,48 +260,48 @@ export default function ResumenPage({ gastos, deudas, metas = [], config }: Prop
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Top lists */}
-        <div className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Top 3 categorías de gasto</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {topCategorias.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sin gastos este mes.</p>
-              ) : (
-                <div className="space-y-2">
-                  {topCategorias.map(([cat, val]) => (
-                    <div key={cat} className="flex justify-between text-sm">
-                      <span>{cat}</span>
-                      <span className="font-medium">{formatMoney(val, config)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Top 3 deudas por saldo</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {topDeudas.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Sin deudas activas.</p>
-              ) : (
-                <div className="space-y-2">
-                  {topDeudas.map((d) => (
-                    <div key={d.id} className="flex justify-between text-sm">
-                      <span>{d.nombre}</span>
-                      <span className="font-medium">{formatMoney(d.saldoActual, config)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+      {/* Top lists */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Top 3 categorías de gasto</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {topCategorias.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin gastos este mes.</p>
+            ) : (
+              <div className="space-y-2">
+                {topCategorias.map(([cat, val]) => (
+                  <div key={cat} className="flex justify-between text-sm">
+                    <span>{cat}</span>
+                    <span className="font-medium">{formatMoney(val, config)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Top 3 deudas por saldo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {topDeudas.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin deudas activas.</p>
+            ) : (
+              <div className="space-y-2">
+                {topDeudas.map((d) => (
+                  <div key={d.id} className="flex justify-between text-sm">
+                    <span>{d.nombre}</span>
+                    <span className="font-medium">{formatMoney(d.saldoActual, config)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

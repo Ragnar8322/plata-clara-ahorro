@@ -1,7 +1,7 @@
 export interface Gasto {
   id: string;
   fecha: string;
-  categoria: CategoriaGasto;
+  categoria: string;
   descripcion: string;
   monto: number;
   metodoPago: MetodoPago;
@@ -9,18 +9,6 @@ export interface Gasto {
   frecuencia: Frecuencia;
   notas?: string;
 }
-
-export type CategoriaGasto =
-  | "Vivienda"
-  | "Alimentación"
-  | "Transporte"
-  | "Servicios"
-  | "Salud"
-  | "Entretenimiento"
-  | "Educación"
-  | "Deudas"
-  | "Ahorro"
-  | "Otros";
 
 export type MetodoPago =
   | "Efectivo"
@@ -67,7 +55,7 @@ export interface Configuracion {
   estrategiaOrdenDeudas: EstrategiaOrden;
 }
 
-export const CATEGORIAS_GASTO: CategoriaGasto[] = [
+export const CATEGORIAS_GASTO_DEFAULT = [
   "Vivienda", "Alimentación", "Transporte", "Servicios", "Salud",
   "Entretenimiento", "Educación", "Deudas", "Ahorro", "Otros",
 ];
@@ -135,4 +123,24 @@ export interface MetaAhorro {
   notas?: string;
   created_at?: string;
   updated_at?: string;
+  estado?: string;
+}
+
+// Nuevas Interfaces
+export interface CategoriaPersonalizada {
+  id: string;
+  user_id?: string;
+  nombre: string;
+  color: string;
+  created_at?: string;
+}
+
+export interface PagoDeuda {
+  id: string;
+  user_id?: string;
+  deuda_id: string;
+  monto: number;
+  fecha: string;
+  notas?: string;
+  created_at?: string;
 }
