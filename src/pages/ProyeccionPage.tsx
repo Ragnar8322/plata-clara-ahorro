@@ -14,9 +14,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import {
-  Tooltip, TooltipContent, TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { HelpCircle, RefreshCw, PartyPopper } from "lucide-react";
+  AreaChart, Area, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, CartesianGrid,
+  BarChart, Bar, Cell, Legend
+} from "recharts";
+import { HelpCircle, RefreshCw, PartyPopper, TrendingDown, PieChart } from "lucide-react";
 
 interface Props {
   deudas: Deuda[];
@@ -49,6 +50,40 @@ export default function ProyeccionPage({ deudas, config }: Props) {
 
   const totalMinimos = deudasActivas.reduce((s, d) => s + d.pagoMinimoMensual, 0);
   const presupuestoInsuficiente = Number(presupuesto) < totalMinimos;
+
+  const dataGraficoBalance = useMemo(() => {
+    if (!resultado) return [];
+    return resultado.calendario.map(mes => {
+      const saldoTotal = mes.pagos.reduce((sum, p) => sum + p.saldoFinal, 0);
+      return {
+        name: mes.fecha,
+        Balance: saldoTotal,
+      };
+    });
+  }, [resultado]);
+
+  const dataGraficoIntereses = useMemo(() => {
+    if (!resultado) return [];
+    
+    // Sumar por deuda
+    const totales: Record<string, { capital: number; interes: number; nombre: string }> = {};
+    
+    resultado.calendario.forEach(mes => {
+      mes.pagos.forEach(pago => {
+        if (!totales[pago.deudaId]) {
+          totales[pago.deudaId] = { capital: 0, interes: 0, nombre: pago.nombreDeuda };
+        }
+        totales[pago.deudaId].capital += pago.abonoCapital;
+        totales[pago.deudaId].interes += pago.abonoInteres;
+      });
+    });
+
+    return Object.values(totales).map(t => ({
+      name: t.nombre,
+      Capital: Math.round(t.capital),
+      Intereses: Math.round(t.interes),
+    }));
+  }, [resultado]);
 
   return (
     <div className="space-y-6">
@@ -115,29 +150,67 @@ export default function ProyeccionPage({ deudas, config }: Props) {
         <>
           {/* Summary */}
           <div className="flex flex-wrap gap-3">
-            <Card className="flex-1 min-w-[180px]">
-              <CardContent className="pt-4 pb-3">
-                <p className="text-xs text-muted-foreground">Meses simulados</p>
-                <p className="text-xl font-bold">{resultado.mesesSimulados}</p>
+            </Card>
+          </div>
+
+          {/* Gráficos de Proyección */}
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <TrendingDown className="h-4 w-4 text-primary" />
+                  Reducción de Deuda Total
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[250px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={dataGraficoBalance} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                      <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `${config.monedaSimbolo}${(v / 1000).toFixed(0)}k`} />
+                      <RTooltip formatter={(v: number) => formatMoney(v, config)} />
+                      <Area 
+                        type="monotone" 
+                        dataKey="Balance" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={2}
+                        fillOpacity={1} 
+                        fill="url(#colorBalance)" 
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
-            <Card className="flex-1 min-w-[180px]">
-              <CardContent className="pt-4 pb-3">
-                <p className="text-xs text-muted-foreground">Total intereses pagados</p>
-                <p className="text-xl font-bold text-destructive">{formatMoney(resultado.totalInteresesPagados, config)}</p>
-              </CardContent>
-            </Card>
-            <Card className="flex-1 min-w-[200px]">
-              <CardContent className="pt-4 pb-3">
-                <p className="text-xs text-muted-foreground">Libre de deudas</p>
-                {resultado.fechaLibreDeDeudas ? (
-                  <div className="flex items-center gap-2">
-                    <p className="text-xl font-bold text-success">{resultado.fechaLibreDeDeudas}</p>
-                    <PartyPopper className="h-5 w-5 text-success" />
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No se alcanza en el rango simulado</p>
-                )}
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <PieChart className="h-4 w-4 text-primary" />
+                  Distribución de Pagos (Capital vs Interés)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[250px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={dataGraficoIntereses} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.2} />
+                      <XAxis type="number" hide />
+                      <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={80} />
+                      <RTooltip formatter={(v: number) => formatMoney(v, config)} />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
+                      <Bar dataKey="Capital" stackId="a" fill="hsl(var(--primary))" radius={[0, 0, 0, 0]} barSize={20} />
+                      <Bar dataKey="Intereses" stackId="a" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={20} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
           </div>

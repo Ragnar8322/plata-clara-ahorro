@@ -30,7 +30,16 @@ export default function Layout({ children }: { children: ReactNode }) {
           </h1>
           <div className="flex items-center gap-2">
             <ModeToggle />
-            <span className="text-xs text-muted-foreground hidden sm:inline">{user?.email}</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.open('/reporte', '_blank')} 
+              className="gap-1.5 hidden sm:flex border-primary/20 hover:bg-primary/5"
+            >
+              <TrendingDown className="h-4 w-4 text-primary" />
+              <span>Reporte</span>
+            </Button>
+            <span className="text-xs text-muted-foreground hidden lg:inline">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={signOut} className="gap-1.5">
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Salir</span>

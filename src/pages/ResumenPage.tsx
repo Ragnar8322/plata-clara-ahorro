@@ -1,13 +1,14 @@
-import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria } from "@/types";
+import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso } from "@/types";
 import { formatMoney } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, Cell,
-  LineChart, Line, CartesianGrid
+  LineChart, Line, CartesianGrid, Area, AreaChart
 } from "recharts";
-import { AlertCircle, Target } from "lucide-react";
+import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useMemo } from "react";
 
 interface Props {
   gastos: Gasto[];
@@ -211,25 +212,61 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
       )}
 
       {/* Saldo de Salud Financiera */}
-      <Card>
-        <CardContent className="pt-6 pb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground font-semibold">Score de Salud Financiera</p>
-              <div className="flex items-baseline gap-2 mt-1">
-                <p className={`text-4xl font-extrabold ${scoreTextClass}`}>{healthScore}</p>
-                <p className="text-sm text-muted-foreground">/ 100</p>
+      <Card className="overflow-hidden border-none bg-gradient-to-br from-primary/10 via-background to-background shadow-lg">
+        <CardContent className="pt-8 pb-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="relative flex items-center justify-center">
+              <svg className="h-32 w-32 transform -rotate-90">
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="58"
+                  stroke="currentColor"
+                  strokeWidth="8"
+                  fill="transparent"
+                  className="text-muted/10"
+                />
+                <circle
+                  cx="64"
+                  cy="64"
+                  r="58"
+                  stroke="currentColor"
+                  strokeWidth="8"
+                  fill="transparent"
+                  strokeDasharray={364.4}
+                  strokeDashoffset={364.4 - (364.4 * healthScore) / 100}
+                  className={`${scoreTextClass} transition-all duration-1000 ease-out`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-4xl font-black ${scoreTextClass}`}>{healthScore}</span>
+                <span className="text-[10px] uppercase font-bold text-muted-foreground">Score</span>
               </div>
-              <p className={`text-sm font-medium mt-1 ${scoreTextClass}`}>{scoreLabel}</p>
             </div>
-            <div className="flex-1 max-w-md w-full">
-              <Progress value={healthScore} className={`h-3 ${scoreColor} opacity-20`} indicatorColor={scoreColor} />
-              <div className="flex justify-between mt-2 text-xs text-muted-foreground">
-                <span>0</span>
-                <span>40</span>
-                <span>60</span>
-                <span>80</span>
-                <span>100</span>
+
+            <div className="flex-1 space-y-4">
+              <div>
+                <h3 className="text-xl font-bold flex items-center gap-2">
+                  <ShieldCheck className={`h-5 w-5 ${scoreTextClass}`} />
+                  Estado: {scoreLabel}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Tu salud financiera está basada en tu capacidad de ahorro, nivel de endeudamiento y progreso de metas.
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2 bg-background/50 rounded-lg border border-border/50">
+                  <p className="text-[10px] uppercase text-muted-foreground">Ahorro</p>
+                  <p className="font-bold text-sm">{margen > 0 ? "✓ OK" : "⚠ BAJO"}</p>
+                </div>
+                <div className="p-2 bg-background/50 rounded-lg border border-border/50">
+                  <p className="text-[10px] uppercase text-muted-foreground">Deuda</p>
+                  <p className="font-bold text-sm">{totalMinimos/ingresoMensualTotal < 0.3 ? "✓ BAJA" : "⚠ ALTA"}</p>
+                </div>
+                <div className="p-2 bg-background/50 rounded-lg border border-border/50">
+                  <p className="text-[10px] uppercase text-muted-foreground">Metas</p>
+                  <p className="font-bold text-sm">{metasActivas.length > 0 ? "✓ ACTIVA" : "⚠ NINGUNA"}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -286,13 +323,26 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={tendenciaGastos} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.3} />
+              <AreaChart data={tendenciaGastos} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                <defs>
+                  <linearGradient id="colorGastos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
                 <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${config.monedaSimbolo}${(v / 1000).toFixed(0)}k`} />
                 <RTooltip formatter={(value: number) => formatMoney(value, config)} />
-                <Line type="monotone" dataKey="Gastos" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
+                <Area 
+                  type="monotone" 
+                  dataKey="Gastos" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={3} 
+                  fillOpacity={1} 
+                  fill="url(#colorGastos)" 
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>

@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { useFinancialData } from "@/hooks/useFinancialData";
 import Layout from "@/components/Layout";
 import ResumenPage from "@/pages/ResumenPage";
+import ReporteImprimible from "@/components/ReporteImprimible";
 import GastosPage from "@/pages/GastosPage";
 import DeudasPage from "@/pages/DeudasPage";
 import ProyeccionPage from "@/pages/ProyeccionPage";
@@ -104,6 +105,17 @@ function AppContent() {
             onDeleteIngreso={deleteIngreso}
             gastos={gastos}
             deudas={deudas}
+          />
+        } />
+        <Route path="/reporte" element={
+          <ReporteImprimible 
+            gastos={gastos}
+            deudas={deudas}
+            metas={metas}
+            presupuestos={presupuestos}
+            ingresos={ingresos}
+            config={config}
+            healthScore={75}
           />
         } />
         <Route path="*" element={<NotFound />} />
