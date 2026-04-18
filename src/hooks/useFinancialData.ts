@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Gasto, Deuda, Configuracion } from "@/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -7,120 +7,161 @@ import {
   loadDeudas, saveDeuda, updateDeuda as updateDeudaDb, deleteDeuda as deleteDeudaDb,
   loadConfiguracion, saveConfiguracion,
 } from "@/services/storage";
+import {
+  loadMetas, saveMeta, updateMeta as updateMetaDb, deleteMeta as deleteMetaDb,
+} from "@/services/metasStorage";
+
+
+const defaultConfig: Configuracion = {
+  id: "default",
+  ingresoMensualNeto: 0,
+  monedaSimbolo: "$",
+  nombreMoneda: "COP",
+  presupuestoMensualParaDeudas: 0,
+  mesesMaxProyeccion: 36,
+  estrategiaOrdenDeudas: "SaldoAscendente",
+};
 
 export function useFinancialData() {
   const { user } = useAuth();
-  const [gastos, setGastos] = useState<Gasto[]>([]);
-  const [deudas, setDeudas] = useState<Deuda[]>([]);
-  const [config, setConfig] = useState<Configuracion>({
-    id: "default",
-    ingresoMensualNeto: 0,
-    monedaSimbolo: "$",
-    nombreMoneda: "COP",
-    presupuestoMensualParaDeudas: 0,
-    mesesMaxProyeccion: 36,
-    estrategiaOrdenDeudas: "SaldoAscendente",
+  const queryClient = useQueryClient();
+
+  const { data: gastos = [], isLoading: loadingGastos } = useQuery({
+    queryKey: ["gastos", user?.id],
+    queryFn: loadGastos,
+    enabled: !!user,
   });
-  const [loading, setLoading] = useState(true);
-  const [configLoaded, setConfigLoaded] = useState(false);
 
-  // Load all data on mount
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
+  const { data: deudas = [], isLoading: loadingDeudas } = useQuery({
+    queryKey: ["deudas", user?.id],
+    queryFn: loadDeudas,
+    enabled: !!user,
+  });
 
-    async function fetchAll() {
-      try {
-        const [g, d, c] = await Promise.all([loadGastos(), loadDeudas(), loadConfiguracion()]);
-        if (cancelled) return;
-        setGastos(g);
-        setDeudas(d);
-        setConfig(c);
-        setConfigLoaded(c.id !== "default");
-      } catch (err: any) {
-        toast.error("Error cargando datos: " + err.message);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
+  const { data: config = defaultConfig, isLoading: loadingConfig } = useQuery({
+    queryKey: ["configuracion", user?.id],
+    queryFn: loadConfiguracion,
+    enabled: !!user,
+  });
 
-    fetchAll();
-    return () => { cancelled = true; };
-  }, [user]);
+  const { data: metas = [], isLoading: loadingMetas } = useQuery({
+    queryKey: ["metas", user?.id],
+    queryFn: loadMetas,
+    enabled: !!user,
+  });
 
-  // Gastos
-  const addGasto = useCallback(async (gasto: Omit<Gasto, "id">) => {
-    if (!user) return;
-    try {
-      const nuevo = await saveGasto(gasto, user.id);
-      setGastos((prev) => [nuevo, ...prev]);
-    } catch (err: any) {
-      toast.error("Error guardando gasto: " + err.message);
-    }
-  }, [user]);
+  // Gastos Mutations
+  const addGasto = useMutation({
+    mutationFn: async (gasto: Omit<Gasto, "id">) => {
+      if (!user) throw new Error("No user");
+      return saveGasto(gasto, user.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gastos", user?.id] });
+      toast.success("Gasto registrado");
+    },
+    onError: (err: Error) => toast.error("Error guardando gasto: " + err.message),
+  }).mutateAsync;
 
-  const updateGasto = useCallback(async (gasto: Gasto) => {
-    try {
-      await updateGastoDb(gasto);
-      setGastos((prev) => prev.map((g) => (g.id === gasto.id ? gasto : g)));
-    } catch (err: any) {
-      toast.error("Error actualizando gasto: " + err.message);
-    }
-  }, []);
+  const updateGasto = useMutation({
+    mutationFn: updateGastoDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gastos", user?.id] });
+      toast.success("Gasto actualizado");
+    },
+    onError: (err: Error) => toast.error("Error actualizando gasto: " + err.message),
+  }).mutateAsync;
 
-  const deleteGastoFn = useCallback(async (id: string) => {
-    try {
-      await deleteGastoDb(id);
-      setGastos((prev) => prev.filter((g) => g.id !== id));
-    } catch (err: any) {
-      toast.error("Error eliminando gasto: " + err.message);
-    }
-  }, []);
+  const deleteGasto = useMutation({
+    mutationFn: deleteGastoDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["gastos", user?.id] });
+      toast.success("Gasto eliminado");
+    },
+    onError: (err: Error) => toast.error("Error eliminando gasto: " + err.message),
+  }).mutateAsync;
 
-  // Deudas
-  const addDeuda = useCallback(async (deuda: Omit<Deuda, "id">) => {
-    if (!user) return;
-    try {
-      const nueva = await saveDeuda(deuda, user.id);
-      setDeudas((prev) => [...prev, nueva]);
-    } catch (err: any) {
-      toast.error("Error guardando deuda: " + err.message);
-    }
-  }, [user]);
+  // Deudas Mutations
+  const addDeuda = useMutation({
+    mutationFn: async (deuda: Omit<Deuda, "id">) => {
+      if (!user) throw new Error("No user");
+      return saveDeuda(deuda, user.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deudas", user?.id] });
+      toast.success("Deuda registrada");
+    },
+    onError: (err: Error) => toast.error("Error guardando deuda: " + err.message),
+  }).mutateAsync;
 
-  const updateDeudaFn = useCallback(async (deuda: Deuda) => {
-    try {
-      await updateDeudaDb(deuda);
-      setDeudas((prev) => prev.map((d) => (d.id === deuda.id ? deuda : d)));
-    } catch (err: any) {
-      toast.error("Error actualizando deuda: " + err.message);
-    }
-  }, []);
+  const updateDeuda = useMutation({
+    mutationFn: updateDeudaDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deudas", user?.id] });
+      toast.success("Deuda actualizada");
+    },
+    onError: (err: Error) => toast.error("Error actualizando deuda: " + err.message),
+  }).mutateAsync;
 
-  const deleteDeudaFn = useCallback(async (id: string) => {
-    try {
-      await deleteDeudaDb(id);
-      setDeudas((prev) => prev.filter((d) => d.id !== id));
-    } catch (err: any) {
-      toast.error("Error eliminando deuda: " + err.message);
-    }
-  }, []);
+  const deleteDeuda = useMutation({
+    mutationFn: deleteDeudaDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deudas", user?.id] });
+      toast.success("Deuda eliminada");
+    },
+    onError: (err: Error) => toast.error("Error eliminando deuda: " + err.message),
+  }).mutateAsync;
 
-  // Config
-  const updateConfig = useCallback(async (newConfig: Configuracion) => {
-    if (!user) return;
-    try {
-      const saved = await saveConfiguracion(newConfig, user.id);
-      setConfig(saved);
-      setConfigLoaded(true);
-    } catch (err: any) {
-      toast.error("Error guardando configuración: " + err.message);
-    }
-  }, [user]);
+  // Metas Mutations
+  const addMeta = useMutation({
+    mutationFn: async (meta: Omit<MetaAhorro, "id" | "user_id" | "created_at" | "updated_at">) => {
+      if (!user) throw new Error("No user");
+      return saveMeta(meta, user.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["metas", user?.id] });
+      toast.success("Meta registrada");
+    },
+    onError: (err: Error) => toast.error("Error guardando meta: " + err.message),
+  }).mutateAsync;
+
+  const updateMeta = useMutation({
+    mutationFn: updateMetaDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["metas", user?.id] });
+      toast.success("Meta actualizada");
+    },
+    onError: (err: Error) => toast.error("Error actualizando meta: " + err.message),
+  }).mutateAsync;
+
+  const deleteMeta = useMutation({
+    mutationFn: deleteMetaDb,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["metas", user?.id] });
+      toast.success("Meta eliminada");
+    },
+    onError: (err: Error) => toast.error("Error eliminando meta: " + err.message),
+  }).mutateAsync;
+
+  // Config Mutations
+  const updateConfig = useMutation({
+    mutationFn: async (newConfig: Configuracion) => {
+      if (!user) throw new Error("No user");
+      return saveConfiguracion(newConfig, user.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["configuracion", user?.id] });
+    },
+    onError: (err: Error) => toast.error("Error guardando configuración: " + err.message),
+  }).mutateAsync;
+
+  const loading = loadingGastos || loadingDeudas || loadingConfig || loadingMetas;
+  const configLoaded = config.id !== "default";
 
   return {
-    gastos, addGasto, updateGasto, deleteGasto: deleteGastoFn,
-    deudas, addDeuda, updateDeuda: updateDeudaFn, deleteDeuda: deleteDeudaFn,
+    gastos, addGasto, updateGasto, deleteGasto,
+    deudas, addDeuda, updateDeuda, deleteDeuda,
+    metas, addMeta, updateMeta, deleteMeta,
     config, updateConfig,
     loading, configLoaded,
   };

@@ -29,6 +29,7 @@ export default function GastosTable({ gastos, config, onEdit, onDelete }: Props)
   const [filtroMetodo, setFiltroMetodo] = useState("all");
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
   const gastosFiltrados = useMemo(() => {
     return gastos.filter((g) => {
@@ -36,9 +37,10 @@ export default function GastosTable({ gastos, config, onEdit, onDelete }: Props)
       if (filtroMetodo !== "all" && g.metodoPago !== filtroMetodo) return false;
       if (fechaDesde && g.fecha < fechaDesde) return false;
       if (fechaHasta && g.fecha > fechaHasta) return false;
+      if (busqueda && !g.descripcion.toLowerCase().includes(busqueda.toLowerCase())) return false;
       return true;
     });
-  }, [gastos, filtroCategoria, filtroMetodo, fechaDesde, fechaHasta]);
+  }, [gastos, filtroCategoria, filtroMetodo, fechaDesde, fechaHasta, busqueda]);
 
   const total = useMemo(() => gastosFiltrados.reduce((s, g) => s + g.monto, 0), [gastosFiltrados]);
 
@@ -55,7 +57,11 @@ export default function GastosTable({ gastos, config, onEdit, onDelete }: Props)
       {/* Filters */}
       <Card>
         <CardContent className="pt-4">
-          <div className="grid gap-3 sm:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-5">
+            <div>
+              <label className="text-xs text-muted-foreground">Buscar</label>
+              <Input placeholder="Ej. Arriendo" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+            </div>
             <div>
               <label className="text-xs text-muted-foreground">Desde</label>
               <Input type="date" value={fechaDesde} onChange={(e) => setFechaDesde(e.target.value)} />

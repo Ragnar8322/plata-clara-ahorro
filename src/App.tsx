@@ -11,6 +11,7 @@ import GastosPage from "@/pages/GastosPage";
 import DeudasPage from "@/pages/DeudasPage";
 import ProyeccionPage from "@/pages/ProyeccionPage";
 import ConfiguracionPage from "@/pages/ConfiguracionPage";
+import MetasPage from "@/pages/MetasPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import NotFound from "./pages/NotFound";
@@ -71,6 +72,7 @@ function AppContent() {
         <Route path="/" element={<ResumenPage gastos={gastos} deudas={deudas} config={config} />} />
         <Route path="/gastos" element={<GastosPage gastos={gastos} config={config} onAdd={addGasto} onUpdate={updateGasto} onDelete={deleteGasto} />} />
         <Route path="/deudas" element={<DeudasPage deudas={deudas} config={config} onAdd={addDeuda} onUpdate={updateDeuda} onDelete={deleteDeuda} />} />
+        <Route path="/metas" element={<MetasPage />} />
         <Route path="/proyeccion" element={<ProyeccionPage deudas={deudas} config={config} />} />
         <Route path="/configuracion" element={<ConfiguracionPage config={config} onUpdate={updateConfig} />} />
         <Route path="*" element={<NotFound />} />

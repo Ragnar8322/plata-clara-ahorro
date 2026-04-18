@@ -120,3 +120,19 @@ export interface ResultadoSimulacion {
   totalInteresesPagados: number;
   mesesSimulados: number;
 }
+
+export interface MetaAhorro {
+  id: string;
+  user_id?: string;
+  nombre: string;
+  emoji: string;
+  monto_objetivo: number;
+  monto_actual: number;
+  aporte_mensual_planeado: number;
+  fecha_objetivo?: string; // YYYY-MM-DD
+  activa: boolean;
+  color: string;
+  notas?: string;
+  created_at?: string;
+  updated_at?: string;
+}

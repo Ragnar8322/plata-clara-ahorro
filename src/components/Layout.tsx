@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Receipt, CreditCard, TrendingDown, Settings, LogOut,
+  LayoutDashboard, Receipt, CreditCard, TrendingDown, Settings, LogOut, Target
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +11,7 @@ const navItems = [
   { to: "/", label: "Resumen", icon: LayoutDashboard },
   { to: "/gastos", label: "Gastos", icon: Receipt },
   { to: "/deudas", label: "Deudas", icon: CreditCard },
+  { to: "/metas", label: "Metas", icon: Target },
   { to: "/proyeccion", label: "Proyección", icon: TrendingDown },
   { to: "/configuracion", label: "Configuración", icon: Settings },
 ];
@@ -23,8 +24,8 @@ export default function Layout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <h1 className="text-lg font-bold text-foreground tracking-tight">
-            💰 Mi Finanzas
+          <h1 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
+            <span className="text-2xl">🪙</span> Plata Clara
           </h1>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground hidden sm:inline">{user?.email}</span>
