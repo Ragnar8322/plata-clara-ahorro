@@ -47,11 +47,11 @@ export default function AporteDialog({ metaNombre, falta, sugerencia, onSubmit, 
             autoFocus
           />
         </div>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
+          <Button type="submit">Guardar Aporte</Button>
+        </DialogFooter>
       </form>
-      <DialogFooter>
-        <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button type="button" onClick={handleSubmit}>Guardar Aporte</Button>
-      </DialogFooter>
     </DialogContent>
   );
 }
