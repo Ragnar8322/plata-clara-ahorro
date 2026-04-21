@@ -60,7 +60,7 @@ function AppContent() {
 
   const healthScore = useMemo(() => 
     calculateHealthScore(ingresos, deudas, metas, gastos, mesActual)
-  , [ingresos, deudas, metas, gastos, mesActual, calculateHealthScore]);
+  , [ingresos, deudas, metas, gastos, mesActual]);
 
   if (loading) {
     return (

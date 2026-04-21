@@ -237,7 +237,7 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
                 </div>
                 <div className="p-2 bg-background/50 rounded-lg border border-border/50">
                   <p className="text-[10px] uppercase text-muted-foreground">Deuda</p>
-                  <p className="font-bold text-sm">{totalMinimos/ingresoMensualTotal < 0.3 ? "✓ BAJA" : "⚠ ALTA"}</p>
+                  <p className="font-bold text-sm">{ingresoMensualTotal > 0 && totalMinimos/ingresoMensualTotal < 0.3 ? "✓ BAJA" : "⚠ ALTA"}</p>
                 </div>
                 <div className="p-2 bg-background/50 rounded-lg border border-border/50">
                   <p className="text-[10px] uppercase text-muted-foreground">Metas</p>

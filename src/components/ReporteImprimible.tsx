@@ -132,12 +132,12 @@ export default function ReporteImprimible({
               <div key={m.id}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium underline decoration-primary/30 decoration-2">{m.emoji} {m.nombre}</span>
-                  <span className="font-bold">{Math.round((m.monto_actual/m.monto_objetivo)*100)}%</span>
+                  <span className="font-bold">{m.monto_objetivo > 0 ? Math.round((m.monto_actual/m.monto_objetivo)*100) : 0}%</span>
                 </div>
                 <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-primary" 
-                    style={{ width: `${(m.monto_actual/m.monto_objetivo)*100}%` }}
+                    style={{ width: `${m.monto_objetivo > 0 ? (m.monto_actual/m.monto_objetivo)*100 : 0}%` }}
                   />
                 </div>
               </div>

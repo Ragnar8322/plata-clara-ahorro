@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { Deuda, Configuracion, EstrategiaOrden, ResultadoSimulacion } from "../types";
 import { simularBolaDeNieve } from "@/services/snowballCalculator";
 import { formatMoney } from "@/lib/formatters";
@@ -7,6 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -297,11 +302,11 @@ export default function ProyeccionPage({ deudas, config }: Props) {
                   <TableRow>
                     <TableHead className="sticky left-0 bg-card z-10"></TableHead>
                     {resultado.ordenPago.map((d) => (
-                      <>
-                        <TableHead key={`${d.deudaId}-pago`} className="text-right text-xs border-l">Pago</TableHead>
-                        <TableHead key={`${d.deudaId}-int`} className="text-right text-xs">Interés</TableHead>
-                        <TableHead key={`${d.deudaId}-sal`} className="text-right text-xs">Saldo</TableHead>
-                      </>
+                      <Fragment key={`${d.deudaId}-headers`}>
+                        <TableHead className="text-right text-xs border-l">Pago</TableHead>
+                        <TableHead className="text-right text-xs">Interés</TableHead>
+                        <TableHead className="text-right text-xs">Saldo</TableHead>
+                      </Fragment>
                     ))}
                   </TableRow>
                 </TableHeader>
@@ -313,19 +318,19 @@ export default function ProyeccionPage({ deudas, config }: Props) {
                       </TableCell>
                       {resultado.ordenPago.map((op) => {
                         const pago = mes.pagos.find((p) => p.deudaId === op.deudaId);
-                        if (!pago) return <><TableCell className="border-l">-</TableCell><TableCell>-</TableCell><TableCell>-</TableCell></>;
+                        if (!pago) return <Fragment key={`${op.deudaId}-${mes.mesNumero}-empty`}><TableCell className="border-l">-</TableCell><TableCell>-</TableCell><TableCell>-</TableCell></Fragment>;
                         return (
-                          <>
-                            <TableCell key={`${op.deudaId}-${mes.mesNumero}-p`} className="text-right text-xs border-l">
+                          <Fragment key={`${op.deudaId}-${mes.mesNumero}`}>
+                            <TableCell className="text-right text-xs border-l">
                               {pago.pagoTotal > 0 ? formatMoney(pago.pagoTotal, config) : "-"}
                             </TableCell>
-                            <TableCell key={`${op.deudaId}-${mes.mesNumero}-i`} className="text-right text-xs text-muted-foreground">
+                            <TableCell className="text-right text-xs text-muted-foreground">
                               {pago.abonoInteres > 0 ? formatMoney(pago.abonoInteres, config) : "-"}
                             </TableCell>
-                            <TableCell key={`${op.deudaId}-${mes.mesNumero}-s`} className={`text-right text-xs ${pago.pagada ? "text-success font-medium" : ""}`}>
+                            <TableCell className={`text-right text-xs ${pago.pagada ? "text-success font-medium" : ""}`}>
                               {pago.pagada ? "✓ Pagada" : formatMoney(pago.saldoFinal, config)}
                             </TableCell>
-                          </>
+                          </Fragment>
                         );
                       })}
                     </TableRow>

@@ -50,7 +50,7 @@ export default function AporteDialog({ metaNombre, falta, sugerencia, onSubmit, 
       </form>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" onClick={handleSubmit}>Guardar Aporte</Button>
+        <Button type="button" onClick={handleSubmit}>Guardar Aporte</Button>
       </DialogFooter>
     </DialogContent>
   );

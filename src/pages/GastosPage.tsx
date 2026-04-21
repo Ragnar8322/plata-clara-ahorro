@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Gasto, Configuracion, CategoriaPersonalizada, Deuda, PagoDeuda } from "@/types";
 import GastoForm from "@/components/gastos/GastoForm";
 import GastosTable from "@/components/gastos/GastosTable";
