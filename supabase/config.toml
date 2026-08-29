@@ -1,1 +1,10 @@
 project_id = "jtbvjouybgqaqmilxrqj"
+
+[auth]
+enabled = true
+site_url = "http://localhost:8080"
+additional_redirect_urls = ["https://plata-clara-ahorro.vercel.app"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false
