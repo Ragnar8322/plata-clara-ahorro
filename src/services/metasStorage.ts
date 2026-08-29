@@ -20,7 +20,7 @@ export async function loadMetas(): Promise<MetaAhorro[]> {
 export async function saveMeta(meta: Omit<MetaAhorro, "id" | "user_id" | "created_at" | "updated_at">, userId: string): Promise<MetaAhorro> {
   const { data, error } = await supabase
     .from("metas_ahorro")
-    .insert([{ ...meta, user_id: userId }])
+    .insert([{ ...meta, fecha_objetivo: meta.fecha_objetivo || null, user_id: userId }])
     .select()
     .single();
 
@@ -37,7 +37,7 @@ export async function updateMeta(meta: MetaAhorro): Promise<MetaAhorro> {
       monto_objetivo: meta.monto_objetivo,
       monto_actual: meta.monto_actual,
       aporte_mensual_planeado: meta.aporte_mensual_planeado,
-      fecha_objetivo: meta.fecha_objetivo,
+      fecha_objetivo: meta.fecha_objetivo || null,
       activa: meta.activa,
       color: meta.color,
       notas: meta.notas,

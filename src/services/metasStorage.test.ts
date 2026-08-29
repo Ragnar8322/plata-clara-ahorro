@@ -97,8 +97,27 @@ describe("metasStorage.ts — saveMeta", () => {
     const result = await saveMeta(newMeta, "user-1");
 
     expect(supabase.from).toHaveBeenCalledWith("metas_ahorro");
-    expect(builder.insert).toHaveBeenCalledWith([{ ...newMeta, user_id: "user-1" }]);
+    expect(builder.insert).toHaveBeenCalledWith([{ ...newMeta, fecha_objetivo: null, user_id: "user-1" }]);
     expect(result).toBe(insertedRow);
+  });
+
+  it("coerces an empty fecha_objetivo string to null instead of sending it to Postgres", async () => {
+    const newMeta: Omit<MetaAhorro, "id" | "user_id" | "created_at" | "updated_at"> = {
+      nombre: "Viaje",
+      emoji: "✈️",
+      monto_objetivo: 5_000_000,
+      monto_actual: 0,
+      aporte_mensual_planeado: 200_000,
+      activa: true,
+      color: "#2563eb",
+      fecha_objetivo: "",
+    };
+    const insertedRow: MetaAhorro = { ...newMeta, id: "m3", user_id: "user-1", fecha_objetivo: null };
+    const builder = mockFrom({ data: insertedRow, error: null });
+
+    await saveMeta(newMeta, "user-1");
+
+    expect(builder.insert).toHaveBeenCalledWith([{ ...newMeta, fecha_objetivo: null, user_id: "user-1" }]);
   });
 
   it("throws when Supabase returns an error on insert", async () => {

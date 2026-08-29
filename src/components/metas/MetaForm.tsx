@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { sugerirEmoji } from "@/lib/metaEmoji";
 
 export const metaSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
@@ -26,7 +28,7 @@ interface Props {
 }
 
 export default function MetaForm({ initialData, onSubmit, onCancel }: Props) {
-  const { register, handleSubmit, formState: { errors } } = useForm<MetaFormValues>({
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<MetaFormValues>({
     resolver: zodResolver(metaSchema),
     defaultValues: {
       nombre: initialData?.nombre || "",
@@ -38,6 +40,18 @@ export default function MetaForm({ initialData, onSubmit, onCancel }: Props) {
       notas: initialData?.notas || "",
     },
   });
+
+  // Solo auto-sugerimos el emoji mientras el usuario no lo haya editado a mano,
+  // y solo para metas nuevas (una meta existente respeta el emoji ya guardado).
+  const [emojiTocado, setEmojiTocado] = useState(!!initialData);
+  const nombreValue = watch("nombre");
+  const emojiField = register("emoji");
+
+  useEffect(() => {
+    if (emojiTocado) return;
+    const sugerido = sugerirEmoji(nombreValue);
+    if (sugerido) setValue("emoji", sugerido);
+  }, [nombreValue, emojiTocado, setValue]);
 
   const onSave = (data: MetaFormValues) => {
     onSubmit({
@@ -51,8 +65,17 @@ export default function MetaForm({ initialData, onSubmit, onCancel }: Props) {
     <form onSubmit={handleSubmit(onSave)} className="grid gap-4 py-4">
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="emoji" className="text-right">Emoji</Label>
-        <Input id="emoji" className="col-span-1" {...register("emoji")} />
-        <div className="col-span-2 text-xs text-red-500">{errors.emoji?.message}</div>
+        <Input
+          id="emoji"
+          className="col-span-1"
+          {...emojiField}
+          onChange={(e) => {
+            setEmojiTocado(true);
+            emojiField.onChange(e);
+          }}
+        />
+        <p className="col-span-2 text-xs text-muted-foreground">Se sugiere según el nombre</p>
+        <div className="col-span-4 text-xs text-red-500">{errors.emoji?.message}</div>
       </div>
       
       <div className="grid grid-cols-4 items-center gap-4">
