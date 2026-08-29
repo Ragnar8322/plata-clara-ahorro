@@ -10,10 +10,59 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
+      categorias_gasto: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          nombre: string
+          user_id: string
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          id?: string
+          nombre: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          nombre?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       configuracion: {
         Row: {
           created_at: string
@@ -230,6 +279,44 @@ export type Database = {
         }
         Relationships: []
       }
+      pagos_deudas: {
+        Row: {
+          created_at: string
+          deuda_id: string
+          fecha: string
+          id: string
+          monto: number
+          notas: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deuda_id: string
+          fecha: string
+          id?: string
+          monto: number
+          notas?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deuda_id?: string
+          fecha?: string
+          id?: string
+          monto?: number
+          notas?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagos_deudas_deuda_id_fkey"
+            columns: ["deuda_id"]
+            isOneToOne: false
+            referencedRelation: "deudas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       presupuestos_categorias: {
         Row: {
           categoria: string
@@ -391,6 +478,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
