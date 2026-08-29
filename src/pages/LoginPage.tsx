@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { PiggyBank } from "lucide-react";
 
 export default function LoginPage() {
   const { signIn } = useAuth();
@@ -27,10 +28,13 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-background px-4">
+      <Card className="w-full max-w-sm shadow-lg">
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">💰 Mi Finanzas</CardTitle>
+          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <PiggyBank className="h-6 w-6" />
+          </div>
+          <CardTitle className="text-xl">Plata Clara</CardTitle>
           <p className="text-sm text-muted-foreground">Inicia sesión para continuar</p>
         </CardHeader>
         <CardContent>

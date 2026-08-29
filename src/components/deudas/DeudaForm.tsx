@@ -125,6 +125,10 @@ export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onValidSubmit)} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <p className="sm:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground -mb-1">
+            Información general
+          </p>
+
           <div>
             <Label htmlFor="nombre">Nombre *</Label>
             <Input id="nombre" placeholder="Ej.: Tarjeta Banco X" {...register("nombre")} />
@@ -153,6 +157,10 @@ export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
             <Input id="entidad" placeholder="Banco o entidad" {...register("entidad")} />
             {errors.entidad && <p className="text-xs text-destructive mt-1">{errors.entidad.message}</p>}
           </div>
+
+          <p className="sm:col-span-2 lg:col-span-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground -mb-1 border-t border-border/60 pt-3">
+            Condiciones financieras
+          </p>
 
           <div>
             <Label htmlFor="saldoInicial">Saldo inicial *</Label>

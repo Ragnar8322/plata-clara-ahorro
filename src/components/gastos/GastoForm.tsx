@@ -183,6 +183,10 @@ export default function GastoForm({ gastoEditar, categorias = [], deudas = [], o
             {errors.descripcion && <p className="text-xs text-destructive mt-1">{errors.descripcion.message}</p>}
           </div>
 
+          <p className="sm:col-span-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground -mb-1 border-t border-border/60 pt-3">
+            Detalles del pago
+          </p>
+
           <div>
             <Label htmlFor="monto">Monto *</Label>
             <Input id="monto" type="number" min="0" step="0.01" placeholder="0" {...register("monto")} />

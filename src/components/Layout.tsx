@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Receipt, CreditCard, TrendingDown, Settings, LogOut, Target
+  LayoutDashboard, Receipt, CreditCard, TrendingDown, Settings, LogOut, Target, PiggyBank
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,7 +26,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-border bg-card">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
           <h1 className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
-            <span className="text-2xl">🪙</span> Plata Clara
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <PiggyBank className="h-5 w-5" />
+            </span>
+            Plata Clara
           </h1>
           <div className="flex items-center gap-2">
             <ModeToggle />

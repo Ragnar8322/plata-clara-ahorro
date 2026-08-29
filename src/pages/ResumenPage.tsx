@@ -231,18 +231,31 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
                 </p>
               </div>
               <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 bg-background/50 rounded-lg border border-border/50">
-                  <p className="text-[10px] uppercase text-muted-foreground">Ahorro</p>
-                  <p className="font-bold text-sm">{margen > 0 ? "✓ OK" : "⚠ BAJO"}</p>
-                </div>
-                <div className="p-2 bg-background/50 rounded-lg border border-border/50">
-                  <p className="text-[10px] uppercase text-muted-foreground">Deuda</p>
-                  <p className="font-bold text-sm">{ingresoMensualTotal > 0 && totalMinimos/ingresoMensualTotal < 0.3 ? "✓ BAJA" : "⚠ ALTA"}</p>
-                </div>
-                <div className="p-2 bg-background/50 rounded-lg border border-border/50">
-                  <p className="text-[10px] uppercase text-muted-foreground">Metas</p>
-                  <p className="font-bold text-sm">{metasActivas.length > 0 ? "✓ ACTIVA" : "⚠ NINGUNA"}</p>
-                </div>
+                {(() => {
+                  const ahorroOk = margen > 0;
+                  const deudaOk = ingresoMensualTotal > 0 && totalMinimos / ingresoMensualTotal < 0.3;
+                  const metasOk = metasActivas.length > 0;
+                  const pillClass = (ok: boolean) =>
+                    ok
+                      ? "bg-success/10 border-success/30 text-success"
+                      : "bg-warning/10 border-warning/30 text-warning";
+                  return (
+                    <>
+                      <div className={`p-2 rounded-lg border ${pillClass(ahorroOk)}`}>
+                        <p className="text-[10px] uppercase text-muted-foreground">Ahorro</p>
+                        <p className="font-bold text-sm">{ahorroOk ? "✓ OK" : "⚠ BAJO"}</p>
+                      </div>
+                      <div className={`p-2 rounded-lg border ${pillClass(deudaOk)}`}>
+                        <p className="text-[10px] uppercase text-muted-foreground">Deuda</p>
+                        <p className="font-bold text-sm">{deudaOk ? "✓ BAJA" : "⚠ ALTA"}</p>
+                      </div>
+                      <div className={`p-2 rounded-lg border ${pillClass(metasOk)}`}>
+                        <p className="text-[10px] uppercase text-muted-foreground">Metas</p>
+                        <p className="font-bold text-sm">{metasOk ? "✓ ACTIVA" : "⚠ NINGUNA"}</p>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
