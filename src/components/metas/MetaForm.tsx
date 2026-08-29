@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-const metaSchema = z.object({
+export const metaSchema = z.object({
   nombre: z.string().min(1, "El nombre es requerido"),
   emoji: z.string().min(1, "Selecciona un emoji").max(2, "Solo un emoji"),
   monto_objetivo: z.coerce.number().min(1, "El monto debe ser mayor a 0"),

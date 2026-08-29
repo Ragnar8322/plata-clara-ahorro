@@ -18,7 +18,7 @@ import { PresupuestoCategoria, Ingreso, Gasto, Deuda } from "@/types";
 import { exportToCSV } from "@/lib/exportUtils";
 import { Download, Database } from "lucide-react";
 
-const configSchema = z.object({
+export const configSchema = z.object({
   ingresoMensualNeto: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
   monedaSimbolo: z.string().min(1, "El símbolo es obligatorio"),
   nombreMoneda: z.string().min(1, "El nombre de la moneda es obligatorio"),
