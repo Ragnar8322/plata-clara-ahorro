@@ -152,6 +152,111 @@ export type Database = {
         }
         Relationships: []
       }
+      ingresos: {
+        Row: {
+          categoria: string | null
+          created_at: string | null
+          frecuencia: string | null
+          id: string
+          monto: number
+          nombre: string
+          user_id: string
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string | null
+          frecuencia?: string | null
+          id?: string
+          monto?: number
+          nombre: string
+          user_id: string
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string | null
+          frecuencia?: string | null
+          id?: string
+          monto?: number
+          nombre?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      metas_ahorro: {
+        Row: {
+          activa: boolean
+          aporte_mensual_planeado: number | null
+          color: string | null
+          created_at: string
+          emoji: string | null
+          fecha_objetivo: string | null
+          id: string
+          monto_actual: number
+          monto_objetivo: number
+          nombre: string
+          notas: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activa?: boolean
+          aporte_mensual_planeado?: number | null
+          color?: string | null
+          created_at?: string
+          emoji?: string | null
+          fecha_objetivo?: string | null
+          id?: string
+          monto_actual?: number
+          monto_objetivo: number
+          nombre: string
+          notas?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activa?: boolean
+          aporte_mensual_planeado?: number | null
+          color?: string | null
+          created_at?: string
+          emoji?: string | null
+          fecha_objetivo?: string | null
+          id?: string
+          monto_actual?: number
+          monto_objetivo?: number
+          nombre?: string
+          notas?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      presupuestos_categorias: {
+        Row: {
+          categoria: string
+          created_at: string | null
+          id: string
+          limite_mensual: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string | null
+          id?: string
+          limite_mensual?: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string | null
+          id?: string
+          limite_mensual?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

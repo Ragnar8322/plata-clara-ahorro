@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const gastoSchema = z.object({
+export const gastoSchema = z.object({
   fecha: z.string().min(1, "La fecha es obligatoria"),
   categoria: z.string().min(1, "La categoría es obligatoria"),
   descripcion: z.string().min(1, "La descripción es obligatoria"),

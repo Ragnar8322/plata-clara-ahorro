@@ -8,7 +8,8 @@ export function calculateHealthScore(
   deudas: Deuda[],
   metas: MetaAhorro[],
   gastos: Gasto[],
-  mesKey: string // Para filtrar gastos del mes actual si es necesario
+  mesKey: string, // Para filtrar gastos del mes actual si es necesario
+  ingresoMensualNeto: number
 ): number {
   let score = 0;
 
@@ -18,7 +19,10 @@ export function calculateHealthScore(
   const safeMetas = metas || [];
   const safeGastos = gastos || [];
 
-  const ingresoTotal = safeIngresos.reduce((s, i) => s + (i.monto || 0), 0) || 1;
+  const ingresoTotal =
+    (safeIngresos.length > 0
+      ? safeIngresos.reduce((s, i) => s + (i.monto || 0), 0)
+      : ingresoMensualNeto || 0) || 1;
   const totalMinimos = safeDeudas
     .filter(d => d && d.activa)
     .reduce((s, d) => s + (d.pagoMinimoMensual || 0), 0);
@@ -46,8 +50,8 @@ export function calculateHealthScore(
   if (metasActivas.length === 0) {
     score += 15; // Neutral
   } else {
-    const totalActual = metasActivas.reduce((s, m) => s + m.monto_actual, 0);
-    const totalObjetivo = metasActivas.reduce((s, m) => s + m.monto_objetivo, 0);
+    const totalActual = metasActivas.reduce((s, m) => s + (m.monto_actual || 0), 0);
+    const totalObjetivo = metasActivas.reduce((s, m) => s + (m.monto_objetivo || 0), 0);
     const progreso = totalObjetivo > 0 ? (totalActual / totalObjetivo) : 0;
 
     if (progreso >= 0.5) score += 40;

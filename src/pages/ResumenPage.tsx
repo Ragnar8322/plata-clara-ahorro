@@ -56,8 +56,8 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
   }, [metasActivas]);
 
   const healthScore = useMemo(() => 
-    calculateHealthScore(ingresos, deudas, metas, gastos, mesActual)
-  , [ingresos, deudas, metas, gastos, mesActual]);
+    calculateHealthScore(ingresos, deudas, metas, gastos, mesActual, config.ingresoMensualNeto)
+  , [ingresos, deudas, metas, gastos, mesActual, config.ingresoMensualNeto]);
 
   let scoreLabel = "Crítico";
   let scoreColor = "bg-destructive";

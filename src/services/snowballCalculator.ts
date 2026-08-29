@@ -77,6 +77,17 @@ export function simularBolaDeNieve(
       totalMinimos += minPago;
     }
 
+    if (totalMinimos > presupuestoMensual) {
+      const totalMinimoOriginal = activas.reduce((s, d) => s + d.pagoMinimo, 0);
+      totalMinimos = 0;
+      for (const d of activas) {
+        const proporcion = totalMinimoOriginal > 0 ? d.pagoMinimo / totalMinimoOriginal : 0;
+        const pagoProrrateado = Math.min(presupuestoMensual * proporcion, d.saldo);
+        pagosMinimos.set(d.id, pagoProrrateado);
+        totalMinimos += pagoProrrateado;
+      }
+    }
+
     // 3. Calculate extra money
     let dineroExtra = Math.max(0, presupuestoMensual - totalMinimos);
 
@@ -102,7 +113,6 @@ export function simularBolaDeNieve(
     // 6. Build monthly record
     const pagosMes: PagoMensualDeuda[] = deudasSim.map((d) => {
       const pagoTotal = pagosMinimos.get(d.id) || 0;
-      const interesMes = d.saldoInicialSim > 0 ? d.saldo >= 0 ? (d.saldo + pagoTotal) * d.tasaMensual / (1 + d.tasaMensual) : 0 : 0;
       // Simplified: interest portion is approximate
       const interesAprox = Math.min(pagoTotal, (d.saldo + pagoTotal) * d.tasaMensual);
 
@@ -151,7 +161,7 @@ export function simularBolaDeNieve(
         : null,
     }));
 
-  const todasPagadas = deudasSim.every((d) => d.pagada);
+  const todasPagadas = deudasSim.length > 0 && deudasSim.every((d) => d.pagada);
   const ultimoMesPago = todasPagadas
     ? Math.max(...deudasSim.map((d) => d.mesPagada || 0))
     : null;

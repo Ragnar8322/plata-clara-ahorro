@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 
-const deudaSchema = z.object({
+export const deudaSchema = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio"),
   tipo: z.enum(TIPOS_DEUDA as [string, ...string[]], {
     required_error: "El tipo es obligatorio",
