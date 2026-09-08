@@ -4,9 +4,6 @@ import { formatMoney } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -18,8 +15,8 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
+import ReportarPagoDialog from "@/components/deudas/ReportarPagoDialog";
 import { Pencil, Trash2, Banknote, Clock } from "lucide-react";
-import { toast } from "sonner";
 
 interface Props {
   deudas: Deuda[];
@@ -40,40 +37,6 @@ export default function DeudasTable({ deudas, pagos = [], config, onEdit, onDele
   // Modals state
   const [reportarPagoDeuda, setReportarPagoDeuda] = useState<Deuda | null>(null);
   const [verHistorialDeuda, setVerHistorialDeuda] = useState<Deuda | null>(null);
-
-  // Report Form state
-  const [montoPago, setMontoPago] = useState("");
-  const [fechaPago, setFechaPago] = useState(new Date().toISOString().split("T")[0]);
-  const [notasPago, setNotasPago] = useState("");
-  const [submittingPago, setSubmittingPago] = useState(false);
-
-  const handleReportarPagoSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reportarPagoDeuda || !onAddPago) return;
-    
-    const monto = parseFloat(montoPago);
-    if (isNaN(monto) || monto <= 0) {
-      toast.error("El monto debe ser mayor a 0");
-      return;
-    }
-
-    setSubmittingPago(true);
-    try {
-      await onAddPago({
-        deuda_id: reportarPagoDeuda.id,
-        monto,
-        fecha: fechaPago,
-        notas: notasPago || undefined,
-      });
-      setReportarPagoDeuda(null);
-      setMontoPago("");
-      setNotasPago("");
-    } catch (error) {
-      // Error is handled via mutator
-    } finally {
-      setSubmittingPago(false);
-    }
-  };
 
   const historialDeLaDeuda = useMemo(() => {
     if (!verHistorialDeuda) return [];
@@ -145,10 +108,7 @@ export default function DeudasTable({ deudas, pagos = [], config, onEdit, onDele
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1 justify-end">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50" title="Reportar pago" onClick={() => {
-                          setReportarPagoDeuda(d);
-                          setMontoPago(d.pagoMinimoMensual.toString());
-                        }}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50" title="Reportar pago" onClick={() => setReportarPagoDeuda(d)}>
                           <Banknote className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600 hover:text-blue-700 hover:bg-blue-50" title="Ver historial" onClick={() => setVerHistorialDeuda(d)}>
@@ -187,60 +147,13 @@ export default function DeudasTable({ deudas, pagos = [], config, onEdit, onDele
       </Card>
 
       {/* Reportar Pago Dialog */}
-      <Dialog open={!!reportarPagoDeuda} onOpenChange={(open) => !open && setReportarPagoDeuda(null)}>
-        <DialogContent className="sm:max-w-[425px]">
-          <form onSubmit={handleReportarPagoSubmit}>
-            <DialogHeader>
-              <DialogTitle>Reportar Pago</DialogTitle>
-              <DialogDescription>
-                Se registrará un pago para la deuda <strong>{reportarPagoDeuda?.nombre}</strong>. 
-                Este monto se descontará automáticamente del saldo actual de la deuda en la base de datos.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="montoPago">Monto pagado</Label>
-                <Input 
-                  id="montoPago" 
-                  type="number" 
-                  step="0.01" 
-                  min="0.01" 
-                  required 
-                  value={montoPago} 
-                  onChange={(e) => setMontoPago(e.target.value)} 
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="fechaPago">Fecha del pago</Label>
-                <Input 
-                  id="fechaPago" 
-                  type="date" 
-                  required 
-                  value={fechaPago} 
-                  onChange={(e) => setFechaPago(e.target.value)} 
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="notasPago">Notas (opcional)</Label>
-                <Textarea 
-                  id="notasPago" 
-                  placeholder="Referencia de pago..." 
-                  value={notasPago} 
-                  onChange={(e) => setNotasPago(e.target.value)} 
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setReportarPagoDeuda(null)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={submittingPago}>
-                Registrar pago
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <ReportarPagoDialog
+        open={!!reportarPagoDeuda}
+        onOpenChange={(open) => !open && setReportarPagoDeuda(null)}
+        deudas={deudas}
+        deudaPreseleccionada={reportarPagoDeuda}
+        onSubmit={onAddPago}
+      />
 
       {/* Historial Dialog */}
       <Dialog open={!!verHistorialDeuda} onOpenChange={(open) => !open && setVerHistorialDeuda(null)}>

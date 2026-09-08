@@ -1,14 +1,16 @@
-import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso } from "@/types";
+import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso, PagoDeuda } from "@/types";
 import { formatMoney } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import ReportarPagoDialog from "@/components/deudas/ReportarPagoDialog";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, Cell,
   LineChart, Line, CartesianGrid, Area, AreaChart
 } from "recharts";
-import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity } from "lucide-react";
+import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity, Banknote } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { calculateHealthScore } from "@/lib/financialMetrics";
 
 interface Props {
@@ -18,9 +20,11 @@ interface Props {
   presupuestos?: PresupuestoCategoria[];
   ingresos?: Ingreso[];
   config: Configuracion;
+  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
 }
 
-export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], config }: Props) {
+export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], config, onAddPago }: Props) {
+  const [pagoDialogOpen, setPagoDialogOpen] = useState(false);
   const now = new Date();
   const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -382,8 +386,14 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base">Top 3 deudas por saldo</CardTitle>
+            {deudasActivas.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => setPagoDialogOpen(true)}>
+                <Banknote className="h-3.5 w-3.5 mr-1.5" />
+                Registrar pago
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {topDeudas.length === 0 ? (
@@ -401,6 +411,13 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
           </CardContent>
         </Card>
       </div>
+
+      <ReportarPagoDialog
+        open={pagoDialogOpen}
+        onOpenChange={setPagoDialogOpen}
+        deudas={deudasActivas}
+        onSubmit={onAddPago}
+      />
     </div>
   );
 }

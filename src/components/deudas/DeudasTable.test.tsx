@@ -125,4 +125,26 @@ describe("DeudasTable", () => {
     ).not.toThrow();
     expect(screen.getByText("No hay deudas registradas.")).toBeInTheDocument();
   });
+
+  it("reports a pago for the row's own deuda via the shared ReportarPagoDialog", async () => {
+    const deudas = [makeDeuda({ id: "d1", nombre: "Tarjeta Visa" }), makeDeuda({ id: "d2", nombre: "Tarjeta Master" })];
+    const onAddPago = vi.fn().mockResolvedValue(undefined);
+    render(<DeudasTable deudas={deudas} config={config} onEdit={vi.fn()} onDelete={vi.fn()} onAddPago={onAddPago} />);
+
+    const rows = screen.getAllByRole("row").slice(1);
+    const masterRow = rows.find((r) => within(r).queryByText("Tarjeta Master"))!;
+    fireEvent.click(within(masterRow).getByTitle("Reportar pago"));
+
+    const dialog = screen.getByRole("dialog");
+    // Preselected from the row: no deuda selector shown, just the fixed deuda's name.
+    within(dialog).getByText("Tarjeta Master", { exact: false });
+    expect(within(dialog).queryByRole("combobox")).not.toBeInTheDocument();
+
+    fireEvent.change(within(dialog).getByLabelText(/Monto pagado/i), { target: { value: "20000" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /Registrar pago/i }));
+
+    expect(onAddPago).toHaveBeenCalledWith(
+      expect.objectContaining({ deuda_id: "d2", monto: 20000 }),
+    );
+  });
 });
