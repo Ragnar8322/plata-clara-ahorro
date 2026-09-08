@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { MetaAhorro } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { sugerirEmoji } from "@/lib/metaEmoji";
@@ -28,7 +29,7 @@ interface Props {
 }
 
 export default function MetaForm({ initialData, onSubmit, onCancel }: Props) {
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<MetaFormValues>({
+  const { register, handleSubmit, watch, setValue, control, formState: { errors } } = useForm<MetaFormValues>({
     resolver: zodResolver(metaSchema),
     defaultValues: {
       nombre: initialData?.nombre || "",
@@ -86,13 +87,25 @@ export default function MetaForm({ initialData, onSubmit, onCancel }: Props) {
 
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="monto" className="text-right">Meta ($)</Label>
-        <Input id="monto" type="number" step="0.01" className="col-span-3" {...register("monto_objetivo")} />
+        <Controller
+          name="monto_objetivo"
+          control={control}
+          render={({ field }) => (
+            <CurrencyInput id="monto" className="col-span-3" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />
+          )}
+        />
         <div className="col-span-4 text-xs text-red-500 text-right">{errors.monto_objetivo?.message}</div>
       </div>
 
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="aporte" className="text-right">Aporte mes</Label>
-        <Input id="aporte" type="number" step="0.01" className="col-span-3" {...register("aporte_mensual_planeado")} />
+        <Controller
+          name="aporte_mensual_planeado"
+          control={control}
+          render={({ field }) => (
+            <CurrencyInput id="aporte" className="col-span-3" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />
+          )}
+        />
         <div className="col-span-4 text-xs text-red-500 text-right">{errors.aporte_mensual_planeado?.message}</div>
       </div>
 

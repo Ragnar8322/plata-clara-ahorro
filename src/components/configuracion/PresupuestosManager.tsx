@@ -2,7 +2,7 @@ import { useState } from "react";
 import { CategoriaPersonalizada, PresupuestoCategoria, Configuracion, CATEGORIAS_GASTO } from "@/types";
 import { formatMoney } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Target, Trash2, Save } from "lucide-react";
 
@@ -65,11 +65,10 @@ export default function PresupuestosManager({ categorias, presupuestos, config, 
                   <p className="text-sm font-medium">{cat}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-xs text-muted-foreground">{config.monedaSimbolo}</span>
-                    <Input
-                      type="number"
+                    <CurrencyInput
                       className="h-8 w-32 text-sm"
-                      value={valorActual}
-                      onChange={(e) => handleMontoChange(cat, e.target.value)}
+                      value={valorActual === "" ? undefined : Number(valorActual)}
+                      onChange={(v) => handleMontoChange(cat, v === undefined ? "" : String(v))}
                     />
                   </div>
                 </div>

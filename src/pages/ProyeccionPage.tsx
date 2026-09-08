@@ -4,6 +4,7 @@ import { simularBolaDeNieve } from "@/services/snowballCalculator";
 import { formatMoney } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +37,7 @@ export default function ProyeccionPage({ deudas, config }: Props) {
   );
   const [mesesMax, setMesesMax] = useState(config.mesesMaxProyeccion.toString());
   const [estrategia, setEstrategia] = useState<EstrategiaOrden>(config.estrategiaOrdenDeudas);
-  const [presupuesto, setPresupuesto] = useState(config.presupuestoMensualParaDeudas.toString());
+  const [presupuesto, setPresupuesto] = useState<number | undefined>(config.presupuestoMensualParaDeudas);
   const [resultado, setResultado] = useState<ResultadoSimulacion | null>(null);
 
   const deudasActivas = useMemo(() => deudas.filter((d) => d.activa && d.saldoActual > 0), [deudas]);
@@ -45,7 +46,7 @@ export default function ProyeccionPage({ deudas, config }: Props) {
     if (deudasActivas.length === 0) return;
     const res = simularBolaDeNieve(
       deudas,
-      Number(presupuesto),
+      presupuesto ?? 0,
       Number(mesesMax),
       estrategia,
       fechaInicio
@@ -54,7 +55,7 @@ export default function ProyeccionPage({ deudas, config }: Props) {
   };
 
   const totalMinimos = deudasActivas.reduce((s, d) => s + d.pagoMinimoMensual, 0);
-  const presupuestoInsuficiente = Number(presupuesto) < totalMinimos;
+  const presupuestoInsuficiente = (presupuesto ?? 0) < totalMinimos;
 
   const dataGraficoBalance = useMemo(() => {
     if (!resultado) return [];
@@ -129,8 +130,8 @@ export default function ProyeccionPage({ deudas, config }: Props) {
               </Select>
             </div>
             <div>
-              <Label>Presupuesto mensual deudas</Label>
-              <Input type="number" min="0" value={presupuesto} onChange={(e) => setPresupuesto(e.target.value)} />
+              <Label htmlFor="presupuestoProyeccion">Presupuesto mensual deudas</Label>
+              <CurrencyInput id="presupuestoProyeccion" value={presupuesto} onChange={setPresupuesto} />
               {presupuestoInsuficiente && (
                 <p className="text-xs text-destructive mt-1">
                   El presupuesto es menor que los pagos mínimos ({formatMoney(totalMinimos, config)}).

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 
 interface Props {
@@ -13,13 +13,12 @@ interface Props {
 }
 
 export default function AporteDialog({ metaNombre, falta, sugerencia, onSubmit, onCancel }: Props) {
-  const [monto, setMonto] = useState<string>(sugerencia > 0 ? sugerencia.toString() : "");
+  const [monto, setMonto] = useState<number | undefined>(sugerencia > 0 ? sugerencia : undefined);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const val = parseFloat(monto);
-    if (!isNaN(val) && val > 0) {
-      onSubmit(val);
+    if (monto && monto > 0) {
+      onSubmit(monto);
     }
   };
 
@@ -36,13 +35,11 @@ export default function AporteDialog({ metaNombre, falta, sugerencia, onSubmit, 
           <Label htmlFor="monto" className="text-right">
             Monto
           </Label>
-          <Input
+          <CurrencyInput
             id="monto"
-            type="number"
-            step="0.01"
             className="col-span-3"
             value={monto}
-            onChange={(e) => setMonto(e.target.value)}
+            onChange={setMonto}
             required
             autoFocus
           />

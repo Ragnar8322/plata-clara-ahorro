@@ -5,6 +5,7 @@ import * as z from "zod";
 import { Gasto, CATEGORIAS_GASTO, METODOS_PAGO, TIPOS_GASTO, FRECUENCIAS, CategoriaPersonalizada, Deuda } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -189,7 +190,13 @@ export default function GastoForm({ gastoEditar, categorias = [], deudas = [], o
 
           <div>
             <Label htmlFor="monto">Monto *</Label>
-            <Input id="monto" type="number" min="0" step="0.01" placeholder="0" {...register("monto")} />
+            <Controller
+              name="monto"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput id="monto" placeholder="0" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />
+              )}
+            />
             {errors.monto && <p className="text-xs text-destructive mt-1">{errors.monto.message}</p>}
           </div>
 

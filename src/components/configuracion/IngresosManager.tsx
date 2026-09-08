@@ -3,6 +3,7 @@ import { Ingreso, Configuracion } from "@/types";
 import { formatMoney } from "@/lib/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Banknote } from "lucide-react";
 
@@ -15,21 +16,20 @@ interface Props {
 
 export default function IngresosManager({ ingresos, config, onAdd, onDelete }: Props) {
   const [nuevoNombre, setNuevoNombre] = useState("");
-  const [nuevoMonto, setNuevoMonto] = useState("");
+  const [nuevoMonto, setNuevoMonto] = useState<number | undefined>(undefined);
 
   const handleAdd = async () => {
-    const monto = parseFloat(nuevoMonto);
-    if (!nuevoNombre || isNaN(monto)) return;
+    if (!nuevoNombre || !nuevoMonto) return;
 
     await onAdd({
       nombre: nuevoNombre,
-      monto,
+      monto: nuevoMonto,
       categoria: "Sueldo",
       frecuencia: "Mensual",
     });
 
     setNuevoNombre("");
-    setNuevoMonto("");
+    setNuevoMonto(undefined);
   };
 
   const totalIngresos = ingresos.reduce((sum, ing) => sum + ing.monto, 0);
@@ -52,12 +52,7 @@ export default function IngresosManager({ ingresos, config, onAdd, onDelete }: P
             />
           </div>
           <div className="flex-1">
-            <Input
-              type="number"
-              placeholder="Monto"
-              value={nuevoMonto}
-              onChange={(e) => setNuevoMonto(e.target.value)}
-            />
+            <CurrencyInput placeholder="Monto" value={nuevoMonto} onChange={setNuevoMonto} />
           </div>
           <Button onClick={handleAdd} className="sm:w-auto w-full">
             <Plus className="h-4 w-4 mr-2" /> Agregar

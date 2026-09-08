@@ -77,7 +77,7 @@ describe("PresupuestosManager", () => {
     expect(screen.getAllByText("Mascotas")).toHaveLength(1);
     // Total rendered category rows = static categories + genuinely new custom ones.
     const expectedTotal = new Set([...CATEGORIAS_GASTO, ...categorias.map(c => c.nombre)]).size;
-    expect(screen.getAllByRole("spinbutton")).toHaveLength(expectedTotal);
+    expect(screen.getAllByRole("textbox")).toHaveLength(expectedTotal);
   });
 
   it("shows no save button and defaults every input to 0 when no category has a saved presupuesto", () => {
@@ -108,7 +108,7 @@ describe("PresupuestosManager", () => {
       />,
     );
 
-    expect(screen.getByDisplayValue("500000")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("500.000")).toBeInTheDocument();
     // No unsaved change yet, so the save (icon) button for this row shouldn't exist —
     // only the delete button should be present since a presupuesto already exists.
     const buttons = screen.getAllByRole("button");
@@ -127,7 +127,7 @@ describe("PresupuestosManager", () => {
       />,
     );
 
-    const input = screen.getByDisplayValue("500000");
+    const input = screen.getByDisplayValue("500.000");
     fireEvent.change(input, { target: { value: "600000" } });
 
     // Now both the save and the delete buttons should be present.
@@ -146,7 +146,7 @@ describe("PresupuestosManager", () => {
       />,
     );
 
-    const input = screen.getByDisplayValue("500000");
+    const input = screen.getByDisplayValue("500.000");
     fireEvent.change(input, { target: { value: "600000" } });
     expect(screen.getAllByRole("button")).toHaveLength(2);
 
@@ -166,7 +166,7 @@ describe("PresupuestosManager", () => {
       />,
     );
 
-    const input = screen.getByDisplayValue("500000");
+    const input = screen.getByDisplayValue("500.000");
     fireEvent.change(input, { target: { value: "750000" } });
 
     const saveButton = screen.getAllByRole("button")[0];

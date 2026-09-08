@@ -4,6 +4,7 @@ import * as z from "zod";
 import { Configuracion, CategoriaPersonalizada } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -100,7 +101,13 @@ export default function ConfiguracionPage({
             <form onSubmit={handleSubmit(onValidSubmit)} className="grid gap-4">
               <div>
                 <Label htmlFor="ingreso">Ingreso mensual neto</Label>
-                <Input id="ingreso" type="number" min="0" step="0.01" {...register("ingresoMensualNeto")} />
+                <Controller
+                  name="ingresoMensualNeto"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput id="ingreso" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />
+                  )}
+                />
                 {errors.ingresoMensualNeto && <p className="text-xs text-destructive mt-1">{errors.ingresoMensualNeto.message}</p>}
               </div>
               
@@ -119,7 +126,13 @@ export default function ConfiguracionPage({
 
               <div>
                 <Label htmlFor="presupuesto">Presupuesto mensual para deudas</Label>
-                <Input id="presupuesto" type="number" min="0" step="0.01" {...register("presupuestoMensualParaDeudas")} />
+                <Controller
+                  name="presupuestoMensualParaDeudas"
+                  control={control}
+                  render={({ field }) => (
+                    <CurrencyInput id="presupuesto" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />
+                  )}
+                />
                 {errors.presupuestoMensualParaDeudas && <p className="text-xs text-destructive mt-1">{errors.presupuestoMensualParaDeudas.message}</p>}
               </div>
 
