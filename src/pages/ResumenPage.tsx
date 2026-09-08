@@ -386,14 +386,8 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
+          <CardHeader className="pb-2">
             <CardTitle className="text-base">Top 3 deudas por saldo</CardTitle>
-            {deudasActivas.length > 0 && (
-              <Button variant="outline" size="sm" onClick={() => setPagoDialogOpen(true)}>
-                <Banknote className="h-3.5 w-3.5 mr-1.5" />
-                Registrar pago
-              </Button>
-            )}
           </CardHeader>
           <CardContent>
             {topDeudas.length === 0 ? (
@@ -411,6 +405,16 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
           </CardContent>
         </Card>
       </div>
+
+      {deudasActivas.length > 0 && (
+        <Button
+          onClick={() => setPagoDialogOpen(true)}
+          title="Registrar pago"
+          className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full bg-success p-0 text-success-foreground shadow-lg shadow-success/30 hover:bg-success/90 hover:scale-105 active:scale-95 transition-transform"
+        >
+          <Banknote className="h-6 w-6" />
+        </Button>
+      )}
 
       <ReportarPagoDialog
         open={pagoDialogOpen}
