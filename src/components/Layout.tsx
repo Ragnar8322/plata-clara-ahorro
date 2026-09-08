@@ -1,12 +1,14 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Receipt, CreditCard, TrendingDown, Settings, LogOut, Target, PiggyBank
+  LayoutDashboard, Receipt, CreditCard, TrendingDown, Settings, LogOut, Target, PiggyBank, DollarSign
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ModeToggle";
+import ReportarPagoDialog from "@/components/deudas/ReportarPagoDialog";
+import { Deuda, PagoDeuda } from "@/types";
 
 const navItems = [
   { to: "/", label: "Resumen", icon: LayoutDashboard },
@@ -17,9 +19,17 @@ const navItems = [
   { to: "/configuracion", label: "Configuración", icon: Settings },
 ];
 
-export default function Layout({ children }: { children: ReactNode }) {
+interface Props {
+  children: ReactNode;
+  deudas?: Deuda[];
+  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
+}
+
+export default function Layout({ children, deudas = [], onAddPago }: Props) {
   const location = useLocation();
   const { signOut, user } = useAuth();
+  const [pagoDialogOpen, setPagoDialogOpen] = useState(false);
+  const deudasActivas = deudas.filter((d) => d.activa);
 
   return (
     <div className="min-h-screen bg-background">
@@ -77,6 +87,23 @@ export default function Layout({ children }: { children: ReactNode }) {
       <main className="mx-auto max-w-6xl px-4 py-6">
         {children}
       </main>
+
+      {deudasActivas.length > 0 && (
+        <Button
+          onClick={() => setPagoDialogOpen(true)}
+          title="Registrar pago"
+          className="fixed bottom-6 right-6 z-40 h-16 w-16 rounded-full bg-emerald-600 p-0 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-700 hover:scale-105 active:scale-95 transition-transform"
+        >
+          <DollarSign className="h-8 w-8" strokeWidth={2.5} />
+        </Button>
+      )}
+
+      <ReportarPagoDialog
+        open={pagoDialogOpen}
+        onOpenChange={setPagoDialogOpen}
+        deudas={deudasActivas}
+        onSubmit={onAddPago}
+      />
     </div>
   );
 }

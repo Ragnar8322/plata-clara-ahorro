@@ -75,7 +75,7 @@ function AppContent() {
   // Redirect to config if first time user (no config saved)
   if (!configLoaded) {
     return (
-      <Layout>
+      <Layout deudas={deudas} onAddPago={addPagoDeuda}>
         <Routes>
           <Route path="/configuracion" element={
             <ConfiguracionPage 
@@ -96,9 +96,9 @@ function AppContent() {
   }
 
   return (
-    <Layout>
+    <Layout deudas={deudas} onAddPago={addPagoDeuda}>
       <Routes>
-        <Route path="/" element={<ResumenPage gastos={gastos} deudas={deudas} metas={metas} config={config} presupuestos={presupuestos} ingresos={ingresos} onAddPago={addPagoDeuda} />} />
+        <Route path="/" element={<ResumenPage gastos={gastos} deudas={deudas} metas={metas} config={config} presupuestos={presupuestos} ingresos={ingresos} />} />
         <Route path="/gastos" element={<GastosPage gastos={gastos} config={config} onAdd={addGasto} onUpdate={updateGasto} onDelete={deleteGasto} categorias={categorias} />} />
         <Route path="/deudas" element={<DeudasPage deudas={deudas} pagos={pagosDeuda} config={config} onAdd={addDeuda} onUpdate={updateDeuda} onDelete={deleteDeuda} onAddPago={addPagoDeuda} onDeletePago={deletePagoDeuda} />} />
         <Route path="/metas" element={<MetasPage />} />

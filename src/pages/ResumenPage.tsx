@@ -1,16 +1,14 @@
-import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso, PagoDeuda } from "@/types";
+import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso } from "@/types";
 import { formatMoney } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import ReportarPagoDialog from "@/components/deudas/ReportarPagoDialog";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, Cell,
   LineChart, Line, CartesianGrid, Area, AreaChart
 } from "recharts";
-import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity, Banknote } from "lucide-react";
+import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { calculateHealthScore } from "@/lib/financialMetrics";
 
 interface Props {
@@ -20,11 +18,9 @@ interface Props {
   presupuestos?: PresupuestoCategoria[];
   ingresos?: Ingreso[];
   config: Configuracion;
-  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
 }
 
-export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], config, onAddPago }: Props) {
-  const [pagoDialogOpen, setPagoDialogOpen] = useState(false);
+export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], config }: Props) {
   const now = new Date();
   const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -406,22 +402,6 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
         </Card>
       </div>
 
-      {deudasActivas.length > 0 && (
-        <Button
-          onClick={() => setPagoDialogOpen(true)}
-          title="Registrar pago"
-          className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full bg-success p-0 text-success-foreground shadow-lg shadow-success/30 hover:bg-success/90 hover:scale-105 active:scale-95 transition-transform"
-        >
-          <Banknote className="h-6 w-6" />
-        </Button>
-      )}
-
-      <ReportarPagoDialog
-        open={pagoDialogOpen}
-        onOpenChange={setPagoDialogOpen}
-        deudas={deudasActivas}
-        onSubmit={onAddPago}
-      />
     </div>
   );
 }
