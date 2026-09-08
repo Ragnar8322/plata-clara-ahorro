@@ -5,6 +5,7 @@ import * as z from "zod";
 import { Deuda, TIPOS_DEUDA } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -164,13 +165,25 @@ export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
 
           <div>
             <Label htmlFor="saldoInicial">Saldo inicial *</Label>
-            <Input id="saldoInicial" type="number" min="0" step="0.01" {...register("saldoInicial")} />
+            <Controller
+              name="saldoInicial"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput id="saldoInicial" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />
+              )}
+            />
             {errors.saldoInicial && <p className="text-xs text-destructive mt-1">{errors.saldoInicial.message}</p>}
           </div>
 
           <div>
             <Label htmlFor="saldoActual">Saldo actual *</Label>
-            <Input id="saldoActual" type="number" min="0" step="0.01" {...register("saldoActual")} />
+            <Controller
+              name="saldoActual"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput id="saldoActual" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />
+              )}
+            />
             {errors.saldoActual && <p className="text-xs text-warning mt-1">{errors.saldoActual.message}</p>}
           </div>
 
@@ -188,7 +201,13 @@ export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
 
           <div>
             <Label htmlFor="pagoMinimo">Pago mínimo mensual *</Label>
-            <Input id="pagoMinimo" type="number" min="0" step="0.01" {...register("pagoMinimoMensual")} />
+            <Controller
+              name="pagoMinimoMensual"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput id="pagoMinimo" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />
+              )}
+            />
             {errors.pagoMinimoMensual && <p className="text-xs text-destructive mt-1">{errors.pagoMinimoMensual.message}</p>}
           </div>
 
@@ -200,7 +219,13 @@ export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
 
           <div>
             <Label htmlFor="pagoExtra">Pago extra planeado mensual</Label>
-            <Input id="pagoExtra" type="number" min="0" step="0.01" {...register("pagoExtraPlaneadoMensual")} />
+            <Controller
+              name="pagoExtraPlaneadoMensual"
+              control={control}
+              render={({ field }) => (
+                <CurrencyInput id="pagoExtra" value={field.value} onChange={field.onChange} onBlur={field.onBlur} />
+              )}
+            />
             {errors.pagoExtraPlaneadoMensual && <p className="text-xs text-destructive mt-1">{errors.pagoExtraPlaneadoMensual.message}</p>}
           </div>
 
