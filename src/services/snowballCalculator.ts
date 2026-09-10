@@ -6,6 +6,7 @@ import {
   PagoMensualDeuda,
   ResumenDeudaProyeccion,
 } from "@/types";
+import { compararPorEstrategia } from "@/lib/deudaPriorizacion";
 
 interface DeudaSim {
   id: string;
@@ -179,11 +180,7 @@ export function simularBolaDeNieve(
 }
 
 function sortDeudas(deudas: DeudaSim[], estrategia: EstrategiaOrden): void {
-  if (estrategia === "SaldoAscendente") {
-    deudas.sort((a, b) => a.saldo - b.saldo);
-  } else {
-    deudas.sort((a, b) => b.tasaAnual - a.tasaAnual);
-  }
+  deudas.sort((a, b) => compararPorEstrategia(a, b, estrategia));
 }
 
 function calcularFecha(anioInicio: number, mesInicio: number, mesesAdelante: number): string {

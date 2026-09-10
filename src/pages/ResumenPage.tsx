@@ -1,4 +1,4 @@
-import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso } from "@/types";
+import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso, PagoDeuda } from "@/types";
 import { formatMoney } from "@/lib/formatters";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -6,10 +6,12 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, Cell,
   LineChart, Line, CartesianGrid, Area, AreaChart
 } from "recharts";
-import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity } from "lucide-react";
+import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity, AlertTriangle, Flag } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useMemo } from "react";
 import { calculateHealthScore } from "@/lib/financialMetrics";
+import { calcularDiasMora } from "@/lib/moraCalculator";
+import { recomendarProximaDeuda } from "@/lib/deudaPriorizacion";
 
 interface Props {
   gastos: Gasto[];
@@ -17,10 +19,11 @@ interface Props {
   metas?: MetaAhorro[];
   presupuestos?: PresupuestoCategoria[];
   ingresos?: Ingreso[];
+  pagos?: PagoDeuda[];
   config: Configuracion;
 }
 
-export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], config }: Props) {
+export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], pagos = [], config }: Props) {
   const now = new Date();
   const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -116,6 +119,20 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
     [deudasActivas]
   );
 
+  // Deudas en mora (sin pago registrado desde el último día de corte/pago)
+  const deudasEnMora = useMemo(() => {
+    return deudasActivas
+      .map((d) => ({ deuda: d, diasMora: calcularDiasMora(d, pagos, now) }))
+      .filter((x) => x.diasMora > 0)
+      .sort((a, b) => b.diasMora - a.diasMora);
+  }, [deudasActivas, pagos, now]);
+
+  // Recomendación de cuál deuda pagar primero
+  const recomendacion = useMemo(
+    () => recomendarProximaDeuda(deudasActivas, pagos, config.estrategiaOrdenDeudas, now),
+    [deudasActivas, pagos, config.estrategiaOrdenDeudas, now]
+  );
+
   // Chart data (Comparativa)
   const chartData = [
     { name: "Ingreso", valor: ingresoMensualTotal },
@@ -156,6 +173,37 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
     });
   }, [gastos]);
 
+  // Pagos de deudas realizados (Últimos 6 meses)
+  const tendenciaPagos = useMemo(() => {
+    const map: Record<string, number> = {};
+    const d = new Date();
+    d.setDate(1);
+
+    for (let i = 5; i >= 0; i--) {
+      const past = new Date(d.getFullYear(), d.getMonth() - i, 1);
+      const key = `${past.getFullYear()}-${String(past.getMonth() + 1).padStart(2, "0")}`;
+      map[key] = 0;
+    }
+
+    pagos.forEach((p) => {
+      const key = p.fecha.substring(0, 7);
+      if (map[key] !== undefined) {
+        map[key] += p.monto;
+      }
+    });
+
+    const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+    return Object.entries(map).map(([key, val]) => {
+      const [, month] = key.split("-");
+      return {
+        key,
+        name: monthNames[parseInt(month) - 1],
+        Pagos: val,
+      };
+    });
+  }, [pagos]);
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold">Resumen</h2>
@@ -185,6 +233,43 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
             );
           })}
         </div>
+      )}
+
+      {/* Deudas en mora */}
+      {deudasEnMora.length > 0 && (
+        <div className="space-y-3">
+          {deudasEnMora.map(({ deuda, diasMora }) => (
+            <Alert key={deuda.id} variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle className="font-bold">{deuda.nombre} en mora</AlertTitle>
+              <AlertDescription>
+                {diasMora} {diasMora === 1 ? "día" : "días"} sin pago registrado desde el último corte. Saldo actual: {formatMoney(deuda.saldoActual, config)}.
+              </AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
+
+      {/* Recomendación de próximo pago */}
+      {recomendacion && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Flag className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Recomendación: paga primero
+                </p>
+                <p className="text-lg font-bold">{recomendacion.deuda.nombre}</p>
+                <p className="text-sm text-muted-foreground">
+                  {recomendacion.razon} · Saldo {formatMoney(recomendacion.deuda.saldoActual, config)}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Saldo de Salud Financiera */}
@@ -355,6 +440,38 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
                   ))}
                 </Bar>
               </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Chart Pagos realizados */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Pagos realizados a deudas (6 meses)</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">Comportamiento de tus pagos mensuales</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={tendenciaPagos} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                <defs>
+                  <linearGradient id="colorPagos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${config.monedaSimbolo}${(v / 1000).toFixed(0)}k`} />
+                <RTooltip formatter={(value: number) => formatMoney(value, config)} />
+                <Area
+                  type="monotone"
+                  dataKey="Pagos"
+                  stroke="hsl(var(--success))"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#colorPagos)"
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
