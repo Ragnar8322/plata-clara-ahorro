@@ -9,10 +9,10 @@ import {
 import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity, AlertTriangle, Flag, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import ReportarPagoDialog from "@/components/deudas/ReportarPagoDialog";
-import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useMemo } from "react";
 import { calculateHealthScore } from "@/lib/financialMetrics";
-import { calcularDiasMora } from "@/lib/moraCalculator";
+import { calcularDiasMora, fechaUltimoCorte } from "@/lib/moraCalculator";
 import { recomendarProximaDeuda } from "@/lib/deudaPriorizacion";
 
 interface Props {
@@ -23,11 +23,10 @@ interface Props {
   ingresos?: Ingreso[];
   pagos?: PagoDeuda[];
   config: Configuracion;
-  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
+  onUpdateDeuda?: (d: Deuda) => void;
 }
 
-export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], pagos = [], config, onAddPago }: Props) {
-  const [moraAPagar, setMoraAPagar] = useState<{ deuda: Deuda; fechaSugerida: string } | null>(null);
+export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], pagos = [], config, onUpdateDeuda }: Props) {
   const now = new Date();
   const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -137,9 +136,12 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
     [deudasActivas, pagos, config.estrategiaOrdenDeudas, now]
   );
 
-  const abrirMarcarComoPagado = (deuda: Deuda, diasMora: number) => {
-    const fechaCorte = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diasMora);
-    setMoraAPagar({ deuda, fechaSugerida: fechaCorte.toISOString().split("T")[0] });
+  const marcarMoraComoCubierta = (deuda: Deuda) => {
+    if (!onUpdateDeuda) return;
+    onUpdateDeuda({ ...deuda, moraReconocidaHasta: fechaUltimoCorte(deuda, now) });
+    toast.success(`${deuda.nombre} marcada como al día`, {
+      description: "El saldo ya reflejaba este pago; no se registró ningún movimiento nuevo.",
+    });
   };
 
   // Chart data (Comparativa)
@@ -260,10 +262,10 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
                   size="sm"
                   variant="outline"
                   className="border-destructive/40 text-destructive hover:bg-destructive/10"
-                  onClick={() => abrirMarcarComoPagado(deuda, diasMora)}
+                  onClick={() => marcarMoraComoCubierta(deuda)}
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                  Marcar como pagado (mes anterior)
+                  Ya está al día (no registrar pago)
                 </Button>
               </AlertDescription>
             </Alert>
@@ -539,15 +541,6 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
           </CardContent>
         </Card>
       </div>
-
-      <ReportarPagoDialog
-        open={!!moraAPagar}
-        onOpenChange={(open) => !open && setMoraAPagar(null)}
-        deudas={deudasActivas}
-        deudaPreseleccionada={moraAPagar?.deuda}
-        fechaInicial={moraAPagar?.fechaSugerida}
-        onSubmit={onAddPago}
-      />
     </div>
   );
 }

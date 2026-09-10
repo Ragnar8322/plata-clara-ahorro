@@ -295,6 +295,7 @@ describe("storage.ts — Deudas", () => {
       pago_extra_planeado_mensual: 0,
       activa: true,
       notas: null,
+      mora_reconocida_hasta: null,
     });
     expect(result.saldoInicial).toBe(5000000);
     expect(result.id).toBe("d2");
@@ -331,6 +332,7 @@ describe("storage.ts — Deudas", () => {
       pago_extra_planeado_mensual: 20000,
       activa: true,
       notas: null,
+      mora_reconocida_hasta: null,
     });
     expect(builder.eq).toHaveBeenCalledWith("id", "d1");
   });

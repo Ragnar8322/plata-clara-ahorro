@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calcularDiasMora } from "./moraCalculator";
+import { calcularDiasMora, fechaUltimoCorte } from "./moraCalculator";
 import { Deuda, PagoDeuda } from "@/types";
 
 function makeDeuda(overrides: Partial<Deuda> = {}): Deuda {
@@ -86,5 +86,31 @@ describe("calcularDiasMora", () => {
     // así que el corte de marzo es el 31; hoy 5 abril aún no llega al corte de abril (30),
     // por lo que el ciclo vigente es el de marzo (31 marzo). Del 31 mar al 5 abr = 5 días.
     expect(calcularDiasMora(deuda, [], hoy)).toBe(5);
+  });
+
+  it("returns 0 when moraReconocidaHasta covers the current cycle's corte, with no pago at all", () => {
+    const deuda = makeDeuda({ diaCorteOPago: 15, moraReconocidaHasta: "2026-03-15" });
+    const hoy = new Date(2026, 2, 25); // 25 marzo 2026, corte vigente = 15 marzo
+    expect(calcularDiasMora(deuda, [], hoy)).toBe(0);
+  });
+
+  it("still counts mora when moraReconocidaHasta only covers an older cycle", () => {
+    const deuda = makeDeuda({ diaCorteOPago: 15, moraReconocidaHasta: "2026-02-15" });
+    const hoy = new Date(2026, 2, 25); // corte vigente = 15 marzo, reconocido solo hasta 15 feb
+    expect(calcularDiasMora(deuda, [], hoy)).toBe(10);
+  });
+});
+
+describe("fechaUltimoCorte", () => {
+  it("returns the current cycle's corte date as YYYY-MM-DD", () => {
+    const deuda = makeDeuda({ diaCorteOPago: 15 });
+    const hoy = new Date(2026, 2, 25); // 25 marzo 2026
+    expect(fechaUltimoCorte(deuda, hoy)).toBe("2026-03-15");
+  });
+
+  it("falls back to the previous month's corte when this month's hasn't arrived yet", () => {
+    const deuda = makeDeuda({ diaCorteOPago: 20 });
+    const hoy = new Date(2026, 2, 10); // 10 marzo 2026
+    expect(fechaUltimoCorte(deuda, hoy)).toBe("2026-02-20");
   });
 });

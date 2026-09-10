@@ -34,6 +34,8 @@ export interface Deuda {
   pagoExtraPlaneadoMensual: number;
   activa: boolean;
   notas?: string;
+  /** Último día de corte (YYYY-MM-DD) reconocido manualmente como cubierto, sin registrar un pago. */
+  moraReconocidaHasta?: string;
 }
 
 export type TipoDeuda =

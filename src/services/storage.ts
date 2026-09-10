@@ -102,6 +102,7 @@ export async function loadDeudas(): Promise<Deuda[]> {
     pagoExtraPlaneadoMensual: Number(row.pago_extra_planeado_mensual),
     activa: row.activa,
     notas: row.notas ?? undefined,
+    moraReconocidaHasta: row.mora_reconocida_hasta ?? undefined,
   }));
 }
 
@@ -121,6 +122,7 @@ export async function saveDeuda(deuda: Omit<Deuda, "id">, userId: string): Promi
       pago_extra_planeado_mensual: deuda.pagoExtraPlaneadoMensual,
       activa: deuda.activa,
       notas: deuda.notas ?? null,
+      mora_reconocida_hasta: deuda.moraReconocidaHasta ?? null,
     })
     .select()
     .single();
@@ -140,6 +142,7 @@ export async function saveDeuda(deuda: Omit<Deuda, "id">, userId: string): Promi
     pagoExtraPlaneadoMensual: Number(data.pago_extra_planeado_mensual),
     activa: data.activa,
     notas: data.notas ?? undefined,
+    moraReconocidaHasta: data.mora_reconocida_hasta ?? undefined,
   };
 }
 
@@ -158,6 +161,7 @@ export async function updateDeuda(deuda: Deuda): Promise<void> {
       pago_extra_planeado_mensual: deuda.pagoExtraPlaneadoMensual,
       activa: deuda.activa,
       notas: deuda.notas ?? null,
+      mora_reconocida_hasta: deuda.moraReconocidaHasta ?? null,
     })
     .eq("id", deuda.id);
 
