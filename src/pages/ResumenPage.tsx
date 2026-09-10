@@ -6,9 +6,11 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, Cell,
   LineChart, Line, CartesianGrid, Area, AreaChart
 } from "recharts";
-import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity, AlertTriangle, Flag } from "lucide-react";
+import { AlertCircle, Target, TrendingUp, ShieldCheck, Activity, AlertTriangle, Flag, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useMemo } from "react";
+import { Button } from "@/components/ui/button";
+import ReportarPagoDialog from "@/components/deudas/ReportarPagoDialog";
+import { useMemo, useState } from "react";
 import { calculateHealthScore } from "@/lib/financialMetrics";
 import { calcularDiasMora } from "@/lib/moraCalculator";
 import { recomendarProximaDeuda } from "@/lib/deudaPriorizacion";
@@ -21,9 +23,11 @@ interface Props {
   ingresos?: Ingreso[];
   pagos?: PagoDeuda[];
   config: Configuracion;
+  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
 }
 
-export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], pagos = [], config }: Props) {
+export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], pagos = [], config, onAddPago }: Props) {
+  const [moraAPagar, setMoraAPagar] = useState<{ deuda: Deuda; fechaSugerida: string } | null>(null);
   const now = new Date();
   const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
@@ -132,6 +136,11 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
     () => recomendarProximaDeuda(deudasActivas, pagos, config.estrategiaOrdenDeudas, now),
     [deudasActivas, pagos, config.estrategiaOrdenDeudas, now]
   );
+
+  const abrirMarcarComoPagado = (deuda: Deuda, diasMora: number) => {
+    const fechaCorte = new Date(now.getFullYear(), now.getMonth(), now.getDate() - diasMora);
+    setMoraAPagar({ deuda, fechaSugerida: fechaCorte.toISOString().split("T")[0] });
+  };
 
   // Chart data (Comparativa)
   const chartData = [
@@ -242,8 +251,20 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
             <Alert key={deuda.id} variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle className="font-bold">{deuda.nombre} en mora</AlertTitle>
-              <AlertDescription>
-                {diasMora} {diasMora === 1 ? "día" : "días"} sin pago registrado desde el último corte. Saldo actual: {formatMoney(deuda.saldoActual, config)}.
+              <AlertDescription className="flex flex-col gap-2 items-start">
+                <span>
+                  {diasMora} {diasMora === 1 ? "día" : "días"} sin pago registrado desde el último corte. Saldo actual: {formatMoney(deuda.saldoActual, config)}.
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                  onClick={() => abrirMarcarComoPagado(deuda, diasMora)}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                  Marcar como pagado (mes anterior)
+                </Button>
               </AlertDescription>
             </Alert>
           ))}
@@ -519,6 +540,14 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
         </Card>
       </div>
 
+      <ReportarPagoDialog
+        open={!!moraAPagar}
+        onOpenChange={(open) => !open && setMoraAPagar(null)}
+        deudas={deudasActivas}
+        deudaPreseleccionada={moraAPagar?.deuda}
+        fechaInicial={moraAPagar?.fechaSugerida}
+        onSubmit={onAddPago}
+      />
     </div>
   );
 }

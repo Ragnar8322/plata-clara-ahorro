@@ -98,7 +98,7 @@ function AppContent() {
   return (
     <Layout deudas={deudas} onAddPago={addPagoDeuda}>
       <Routes>
-        <Route path="/" element={<ResumenPage gastos={gastos} deudas={deudas} metas={metas} config={config} presupuestos={presupuestos} ingresos={ingresos} pagos={pagosDeuda} />} />
+        <Route path="/" element={<ResumenPage gastos={gastos} deudas={deudas} metas={metas} config={config} presupuestos={presupuestos} ingresos={ingresos} pagos={pagosDeuda} onAddPago={addPagoDeuda} />} />
         <Route path="/gastos" element={<GastosPage gastos={gastos} config={config} onAdd={addGasto} onUpdate={updateGasto} onDelete={deleteGasto} categorias={categorias} />} />
         <Route path="/deudas" element={<DeudasPage deudas={deudas} pagos={pagosDeuda} config={config} onAdd={addDeuda} onUpdate={updateDeuda} onDelete={deleteDeuda} onAddPago={addPagoDeuda} onDeletePago={deletePagoDeuda} />} />
         <Route path="/metas" element={<MetasPage />} />

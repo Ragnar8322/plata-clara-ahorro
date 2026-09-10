@@ -14,10 +14,12 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   deudas: Deuda[];
   deudaPreseleccionada?: Deuda | null;
+  /** Fecha a preseleccionar al abrir (ej. la fecha de corte vencida), en vez de hoy. */
+  fechaInicial?: string;
   onSubmit?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
 }
 
-export default function ReportarPagoDialog({ open, onOpenChange, deudas, deudaPreseleccionada, onSubmit }: Props) {
+export default function ReportarPagoDialog({ open, onOpenChange, deudas, deudaPreseleccionada, fechaInicial, onSubmit }: Props) {
   const [deudaId, setDeudaId] = useState("");
   const [monto, setMonto] = useState<number | undefined>(undefined);
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
@@ -28,10 +30,10 @@ export default function ReportarPagoDialog({ open, onOpenChange, deudas, deudaPr
     if (open) {
       setDeudaId(deudaPreseleccionada?.id ?? "");
       setMonto(deudaPreseleccionada?.pagoMinimoMensual || undefined);
-      setFecha(new Date().toISOString().split("T")[0]);
+      setFecha(fechaInicial ?? new Date().toISOString().split("T")[0]);
       setNotas("");
     }
-  }, [open, deudaPreseleccionada]);
+  }, [open, deudaPreseleccionada, fechaInicial]);
 
   const deudaSeleccionada = deudas.find((d) => d.id === deudaId) ?? null;
 
