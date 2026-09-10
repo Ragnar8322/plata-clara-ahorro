@@ -26,13 +26,12 @@ export default function ReportarPagoDialog({ open, onOpenChange, deudas, deudaPr
 
   useEffect(() => {
     if (open) {
-      const inicial = deudaPreseleccionada ?? deudas[0] ?? null;
-      setDeudaId(inicial?.id ?? "");
-      setMonto(inicial?.pagoMinimoMensual || undefined);
+      setDeudaId(deudaPreseleccionada?.id ?? "");
+      setMonto(deudaPreseleccionada?.pagoMinimoMensual || undefined);
       setFecha(new Date().toISOString().split("T")[0]);
       setNotas("");
     }
-  }, [open, deudaPreseleccionada, deudas]);
+  }, [open, deudaPreseleccionada]);
 
   const deudaSeleccionada = deudas.find((d) => d.id === deudaId) ?? null;
 
