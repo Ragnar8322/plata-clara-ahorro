@@ -347,8 +347,8 @@ export async function loadPagosDeuda(): Promise<PagoDeuda[]> {
     deuda_id: row.deuda_id,
     monto: Number(row.monto),
     fecha: row.fecha,
-    notas: row.notas,
-    created_at: row.created_at,
+    notas: row.notas ?? undefined,
+    created_at: row.created_at ?? undefined,
   }));
 }
 
@@ -368,7 +368,9 @@ export async function savePagoDeuda(pago: Omit<PagoDeuda, "id" | "user_id" | "cr
   if (error) throw error;
   return {
     ...data,
-    monto: Number(data.monto)
+    monto: Number(data.monto),
+    notas: data.notas ?? undefined,
+    created_at: data.created_at ?? undefined,
   };
 }
 
@@ -407,8 +409,8 @@ export async function loadPresupuestos(): Promise<PresupuestoCategoria[]> {
     user_id: row.user_id,
     categoria: row.categoria,
     limite_mensual: Number(row.limite_mensual),
-    created_at: row.created_at,
-    updated_at: row.updated_at,
+    created_at: row.created_at ?? undefined,
+    updated_at: row.updated_at ?? undefined,
   }));
 }
 
@@ -427,7 +429,9 @@ export async function savePresupuesto(pres: Omit<PresupuestoCategoria, "id" | "u
   if (error) throw error;
   return {
     ...data,
-    limite_mensual: Number(data.limite_mensual)
+    limite_mensual: Number(data.limite_mensual),
+    created_at: data.created_at ?? undefined,
+    updated_at: data.updated_at ?? undefined,
   };
 }
 
@@ -453,9 +457,9 @@ export async function loadIngresos(): Promise<Ingreso[]> {
     user_id: row.user_id,
     nombre: row.nombre,
     monto: Number(row.monto),
-    categoria: row.categoria,
-    frecuencia: row.frecuencia,
-    created_at: row.created_at,
+    categoria: row.categoria ?? undefined,
+    frecuencia: row.frecuencia ?? undefined,
+    created_at: row.created_at ?? undefined,
   }));
 }
 
@@ -475,7 +479,10 @@ export async function saveIngreso(ingreso: Omit<Ingreso, "id" | "user_id" | "cre
   if (error) throw error;
   return {
     ...data,
-    monto: Number(data.monto)
+    monto: Number(data.monto),
+    categoria: data.categoria ?? undefined,
+    frecuencia: data.frecuencia ?? undefined,
+    created_at: data.created_at ?? undefined,
   };
 }
 

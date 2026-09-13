@@ -18,12 +18,15 @@ function ultimoCsv(blobSpy: ReturnType<typeof vi.fn>): string {
   return (instancia.parts[0] as string) ?? "";
 }
 
+const espiarAppendChild = () => vi.spyOn(document.body, "appendChild");
+const espiarRemoveChild = () => vi.spyOn(document.body, "removeChild");
+
 describe("exportToCSV", () => {
   let blobSpy: ReturnType<typeof vi.fn>;
   let createObjectURLSpy: ReturnType<typeof vi.fn>;
   let clickSpy: ReturnType<typeof vi.fn>;
-  let appendChildSpy: ReturnType<typeof vi.spyOn>;
-  let removeChildSpy: ReturnType<typeof vi.spyOn>;
+  let appendChildSpy: ReturnType<typeof espiarAppendChild>;
+  let removeChildSpy: ReturnType<typeof espiarRemoveChild>;
 
   beforeEach(() => {
     blobSpy = vi.fn((parts: unknown[], options?: unknown) => new MockBlob(parts, options));
@@ -41,8 +44,8 @@ describe("exportToCSV", () => {
     // Evita el "Not implemented: HTMLAnchorElement.prototype.click" de jsdom
     HTMLAnchorElement.prototype.click = clickSpy;
 
-    appendChildSpy = vi.spyOn(document.body, "appendChild");
-    removeChildSpy = vi.spyOn(document.body, "removeChild");
+    appendChildSpy = espiarAppendChild();
+    removeChildSpy = espiarRemoveChild();
   });
 
   afterEach(() => {

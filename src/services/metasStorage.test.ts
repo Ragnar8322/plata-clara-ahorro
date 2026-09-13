@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 
 describe("metasStorage.ts — loadMetas", () => {
-  it("queries the 'metas_ahorro' table ordered by created_at and returns rows as-is (no camelCase mapping)", async () => {
+  it("queries the 'metas_ahorro' table ordered by created_at and normalises nullable columns", async () => {
     const rows: MetaAhorro[] = [
       {
         id: "m1",
@@ -56,10 +56,41 @@ describe("metasStorage.ts — loadMetas", () => {
 
     expect(supabase.from).toHaveBeenCalledWith("metas_ahorro");
     expect(builder.order).toHaveBeenCalledWith("created_at", { ascending: true });
-    // No field remapping happens for metas: the DB row shape already matches
-    // MetaAhorro (snake_case fields both in TS and in SQL), unlike
-    // storage.ts's Gasto/Deuda which translate camelCase <-> snake_case.
-    expect(result).toBe(rows);
+    expect(result).toEqual([expect.objectContaining({ id: "m1", emoji: "🏖️", color: "#4f46e5" })]);
+  });
+
+  // La base admite NULL en emoji, color y aporte_mensual_planeado, pero MetaAhorro los declara
+  // obligatorios. Devolver la fila cruda dejaba que esos nulos llegaran a la tarjeta: "null" como
+  // emoji, borde sin color y `falta / null` = Infinity en la fecha estimada.
+  it("sustituye por valores por defecto las columnas que la base permite en NULL", async () => {
+    mockFrom({
+      data: [
+        {
+          id: "m9",
+          user_id: "user-1",
+          nombre: "Sin adornos",
+          emoji: null,
+          monto_objetivo: 500_000,
+          monto_actual: 0,
+          aporte_mensual_planeado: null,
+          fecha_objetivo: null,
+          activa: true,
+          color: null,
+          notas: null,
+          created_at: null,
+          updated_at: null,
+        },
+      ],
+      error: null,
+    });
+
+    const [meta] = await loadMetas();
+
+    expect(typeof meta.emoji).toBe("string");
+    expect(meta.emoji).not.toBe("null");
+    expect(typeof meta.color).toBe("string");
+    expect(meta.aporte_mensual_planeado).toBe(0);
+    expect(meta.fecha_objetivo).toBeUndefined();
   });
 
   it("returns an empty array (not null) when data is null and there is no error", async () => {
@@ -81,7 +112,7 @@ describe("metasStorage.ts — loadMetas", () => {
 });
 
 describe("metasStorage.ts — saveMeta", () => {
-  it("inserts the meta merged with user_id and returns the inserted row as-is", async () => {
+  it("inserts the meta merged with user_id and returns the normalised row", async () => {
     const newMeta: Omit<MetaAhorro, "id" | "user_id" | "created_at" | "updated_at"> = {
       nombre: "Carro nuevo",
       emoji: "🚗",
@@ -98,7 +129,7 @@ describe("metasStorage.ts — saveMeta", () => {
 
     expect(supabase.from).toHaveBeenCalledWith("metas_ahorro");
     expect(builder.insert).toHaveBeenCalledWith([{ ...newMeta, fecha_objetivo: null, user_id: "user-1" }]);
-    expect(result).toBe(insertedRow);
+    expect(result).toMatchObject({ id: "m2", user_id: "user-1", emoji: "🚗" });
   });
 
   it("coerces an empty fecha_objetivo string to null instead of sending it to Postgres", async () => {
@@ -112,7 +143,7 @@ describe("metasStorage.ts — saveMeta", () => {
       color: "#2563eb",
       fecha_objetivo: "",
     };
-    const insertedRow: MetaAhorro = { ...newMeta, id: "m3", user_id: "user-1", fecha_objetivo: null };
+    const insertedRow = { ...newMeta, id: "m3", user_id: "user-1", fecha_objetivo: null };
     const builder = mockFrom({ data: insertedRow, error: null });
 
     await saveMeta(newMeta, "user-1");
@@ -183,7 +214,7 @@ describe("metasStorage.ts — updateMeta", () => {
     const updatedAtMs = new Date(payload.updated_at as string).getTime();
     expect(updatedAtMs).toBeGreaterThanOrEqual(before);
     expect(updatedAtMs).toBeLessThanOrEqual(after);
-    expect(result).toBe(updatedRow);
+    expect(result).toMatchObject({ id: updatedRow.id });
   });
 
   it("throws when Supabase returns an error on update", async () => {

@@ -83,16 +83,15 @@ export default function ReportarPagoDialog({ open, onOpenChange, deudas, deudaPr
                 <Select value={deudaId} onValueChange={setDeudaId}>
                   <SelectTrigger id="deudaSelect"><SelectValue placeholder="Seleccionar deuda..." /></SelectTrigger>
                   <SelectContent>
-                    {/* Una deuda con saldo 0 no admite más pagos: registrarlos recortaba el saldo
-                        a 0 otra vez y el dinero desaparecía del sistema sin dejar rastro. */}
-                    {deudas
-                      .filter((d) => d.saldoActual > 0 || d.id === deudaPreseleccionada?.id)
-                      .map((d) => (
-                        <SelectItem key={d.id} value={d.id} disabled={d.saldoActual <= 0}>
-                          {d.nombre}
-                          {d.saldoActual <= 0 ? " (saldada)" : ""}
-                        </SelectItem>
-                      ))}
+                    {/* Una deuda saldada no admite más pagos: registrarlos recortaba el saldo a 0
+                        otra vez y el dinero desaparecía sin dejar rastro. Se muestran igualmente,
+                        deshabilitadas, para que quede claro por qué no se pueden elegir. */}
+                    {deudas.map((d) => (
+                      <SelectItem key={d.id} value={d.id} disabled={d.saldoActual <= 0}>
+                        {d.nombre}
+                        {d.saldoActual <= 0 ? " (saldada)" : ""}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
