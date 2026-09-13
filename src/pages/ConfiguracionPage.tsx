@@ -32,16 +32,16 @@ type FormValues = z.infer<typeof configSchema>;
 
 interface Props {
   config: Configuracion;
-  onUpdate: (c: Configuracion) => void;
+  onUpdate: (c: Configuracion) => void | Promise<unknown>;
   categorias?: CategoriaPersonalizada[];
-  addCategoria?: (cat: Omit<CategoriaPersonalizada, "id" | "user_id" | "created_at">) => Promise<any>;
-  deleteCategoria?: (id: string) => Promise<any>;
+  addCategoria?: (cat: Omit<CategoriaPersonalizada, "id" | "user_id" | "created_at">) => Promise<unknown>;
+  deleteCategoria?: (id: string) => Promise<unknown>;
   presupuestos?: PresupuestoCategoria[];
-  onSavePresupuesto?: (pres: Omit<PresupuestoCategoria, "id" | "user_id" | "created_at" | "updated_at">) => Promise<any>;
-  onDeletePresupuesto?: (id: string) => Promise<any>;
+  onSavePresupuesto?: (pres: Omit<PresupuestoCategoria, "id" | "user_id" | "created_at" | "updated_at">) => Promise<unknown>;
+  onDeletePresupuesto?: (id: string) => Promise<unknown>;
   ingresos?: Ingreso[];
-  onAddIngreso?: (ing: Omit<Ingreso, "id" | "user_id" | "created_at">) => Promise<any>;
-  onDeleteIngreso?: (id: string) => Promise<any>;
+  onAddIngreso?: (ing: Omit<Ingreso, "id" | "user_id" | "created_at">) => Promise<unknown>;
+  onDeleteIngreso?: (id: string) => Promise<unknown>;
   gastos?: Gasto[];
   deudas?: Deuda[];
 }
@@ -75,17 +75,21 @@ export default function ConfiguracionPage({
     });
   }, [config, reset]);
 
-  const onValidSubmit = (data: FormValues) => {
-    onUpdate({
-      ...config,
-      ingresoMensualNeto: data.ingresoMensualNeto,
-      monedaSimbolo: data.monedaSimbolo,
-      nombreMoneda: data.nombreMoneda,
-      presupuestoMensualParaDeudas: data.presupuestoMensualParaDeudas,
-      mesesMaxProyeccion: data.mesesMaxProyeccion,
-      estrategiaOrdenDeudas: data.estrategiaOrdenDeudas,
-    });
-    toast.success("Configuración guardada correctamente.");
+  const onValidSubmit = async (data: FormValues) => {
+    try {
+      await onUpdate({
+        ...config,
+        ingresoMensualNeto: data.ingresoMensualNeto,
+        monedaSimbolo: data.monedaSimbolo,
+        nombreMoneda: data.nombreMoneda,
+        presupuestoMensualParaDeudas: data.presupuestoMensualParaDeudas,
+        mesesMaxProyeccion: data.mesesMaxProyeccion,
+        estrategiaOrdenDeudas: data.estrategiaOrdenDeudas,
+      });
+      toast.success("Configuración guardada correctamente.");
+    } catch {
+      // updateConfig ya muestra el detalle del error; aquí solo evitamos el falso éxito.
+    }
   };
 
   return (
@@ -168,6 +172,8 @@ export default function ConfiguracionPage({
         {addCategoria && deleteCategoria && (
           <CategoriasManager 
             categorias={categorias} 
+            gastos={gastos}
+            presupuestos={presupuestos}
             onAdd={addCategoria} 
             onDelete={deleteCategoria} 
           />

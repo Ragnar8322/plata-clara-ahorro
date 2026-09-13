@@ -128,4 +128,23 @@ describe("simularBolaDeNieve", () => {
     expect(resultado.calendario[0].pagos[0].pagada).toBe(true);
     expect(resultado.calendario[0].pagos[0].saldoFinal).toBe(0);
   });
+
+  // El desglose mensual se recalculaba sobre el saldo ya capitalizado, así que la columna de
+  // intereses del gráfico nunca cuadraba con el total mostrado en "Total intereses pagados".
+  it("el desglose de intereses del calendario cuadra con el total de intereses", () => {
+    const deudas: Deuda[] = [
+      makeDeuda({ id: "tc", nombre: "Tarjeta", saldoActual: 3_000_000, pagoMinimoMensual: 150_000, tasaInteresAnual: 30 }),
+      makeDeuda({ id: "cred", nombre: "Crédito", saldoActual: 1_000_000, pagoMinimoMensual: 80_000, tasaInteresAnual: 18 }),
+    ];
+
+    const resultado = simularBolaDeNieve(deudas, 600_000, 60, "SaldoAscendente", "2026-01");
+
+    const sumaDesglose = resultado.calendario
+      .flatMap((mes) => mes.pagos)
+      .reduce((s, p) => s + p.abonoInteres, 0);
+
+    // Se liquidan ambas deudas, así que todo el interés devengado se pagó.
+    expect(resultado.fechaLibreDeDeudas).not.toBeNull();
+    expect(sumaDesglose).toBeCloseTo(resultado.totalInteresesPagados, 0);
+  });
 });

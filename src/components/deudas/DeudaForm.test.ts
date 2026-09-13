@@ -49,10 +49,22 @@ describe("deudaSchema", () => {
     expect(resultado.success).toBe(false);
   });
 
-  it("rechaza cuando el saldo actual es mayor al saldo inicial", () => {
+  // El saldo de una tarjeta crece con intereses y nuevos consumos. Exigir
+  // saldoActual <= saldoInicial impedía registrar o corregir esas deudas.
+  it("acepta un saldo actual mayor al inicial (la deuda creció)", () => {
     const resultado = deudaSchema.safeParse(
-      makeDeuda({ saldoInicial: 100, saldoActual: 200 })
+      makeDeuda({ saldoInicial: 1_000_000, saldoActual: 1_300_000 })
     );
+    expect(resultado.success).toBe(true);
+  });
+
+  it("rechaza la tasa de interés vacía en vez de guardarla como 0%", () => {
+    const resultado = deudaSchema.safeParse(makeDeuda({ tasaInteresAnual: "" }));
+    expect(resultado.success).toBe(false);
+  });
+
+  it("rechaza tasas absurdas por encima de 500%", () => {
+    const resultado = deudaSchema.safeParse(makeDeuda({ tasaInteresAnual: 900 }));
     expect(resultado.success).toBe(false);
   });
 });

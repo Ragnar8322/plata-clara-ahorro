@@ -25,6 +25,12 @@ interface Props {
 }
 
 export default function GastosTable({ gastos, config, onEdit, onDelete }: Props) {
+  // El filtro listaba solo las categorías fijas, así que los gastos guardados en una categoría
+  // personalizada quedaban imposibles de filtrar. Se derivan de los datos reales.
+  const categoriasDisponibles = useMemo(
+    () => Array.from(new Set([...CATEGORIAS_GASTO, ...gastos.map((g) => g.categoria)])),
+    [gastos],
+  );
   const [filtroCategoria, setFiltroCategoria] = useState("all");
   const [filtroMetodo, setFiltroMetodo] = useState("all");
   const [fechaDesde, setFechaDesde] = useState("");
@@ -85,7 +91,7 @@ export default function GastosTable({ gastos, config, onEdit, onDelete }: Props)
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
-                  {CATEGORIAS_GASTO.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {categoriasDisponibles.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CategoriaPersonalizada, CATEGORIAS_GASTO } from "@/types";
+import { CategoriaPersonalizada, CATEGORIAS_GASTO, Gasto, PresupuestoCategoria } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,11 +9,13 @@ import { toast } from "sonner";
 
 interface Props {
   categorias: CategoriaPersonalizada[];
-  onAdd: (cat: Pick<CategoriaPersonalizada, "nombre" | "color">) => Promise<any>;
-  onDelete: (id: string) => Promise<any>;
+  gastos?: Gasto[];
+  presupuestos?: PresupuestoCategoria[];
+  onAdd: (cat: Pick<CategoriaPersonalizada, "nombre" | "color">) => Promise<unknown>;
+  onDelete: (id: string) => Promise<unknown>;
 }
 
-export default function CategoriasManager({ categorias, onAdd, onDelete }: Props) {
+export default function CategoriasManager({ categorias, gastos = [], presupuestos = [], onAdd, onDelete }: Props) {
   const [nuevaCategoria, setNuevaCategoria] = useState("");
   const [color, setColor] = useState("#3b82f6"); // Default blue
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,7 +48,26 @@ export default function CategoriasManager({ categorias, onAdd, onDelete }: Props
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar esta categoría? (Los gastos asociados la mantendrán como texto)")) {
+    const categoria = categorias.find(c => c.id === id);
+    if (!categoria) return;
+
+    // Se dice cuántos datos quedan afectados en vez de un aviso genérico: el presupuesto de una
+    // categoría borrada seguía alertando en el dashboard y era difícil entender de dónde salía.
+    const gastosAfectados = gastos.filter(g => g.categoria === categoria.nombre).length;
+    const tienePresupuesto = presupuestos.some(p => p.categoria === categoria.nombre);
+
+    const detalles = [
+      gastosAfectados > 0
+        ? `${gastosAfectados} gasto${gastosAfectados === 1 ? "" : "s"} conservará${gastosAfectados === 1 ? "" : "n"} el nombre como texto`
+        : null,
+      tienePresupuesto ? "su presupuesto quedará marcado como «categoría eliminada»" : null,
+    ].filter(Boolean);
+
+    const mensaje = detalles.length
+      ? `¿Eliminar la categoría "${categoria.nombre}"? ${detalles.join(" y ")}.`
+      : `¿Eliminar la categoría "${categoria.nombre}"?`;
+
+    if (window.confirm(mensaje)) {
       try {
         await onDelete(id);
       } catch (error) {

@@ -54,9 +54,16 @@ export default function MetaForm({ initialData, onSubmit, onCancel }: Props) {
     if (sugerido) setValue("emoji", sugerido);
   }, [nombreValue, emojiTocado, setValue]);
 
+  // zodResolver garantiza en tiempo de ejecución que estos campos llegaron completos, pero con
+  // `"strict": false` en tsconfig.app.json la inferencia de zod marca TODAS las claves como
+  // opcionales (sin strictNullChecks, `undefined extends T` es cierto para cualquier T), así que
+  // el spread no satisface el tipo destino. Al activar `strict: true` esta aserción sobra.
+  type MetaFormValidado = MetaFormValues &
+    Required<Pick<MetaFormValues, "nombre" | "emoji" | "color" | "monto_objetivo" | "aporte_mensual_planeado">>;
+
   const onSave = (data: MetaFormValues) => {
     onSubmit({
-      ...data,
+      ...(data as MetaFormValidado),
       monto_actual: initialData?.monto_actual || 0,
       activa: initialData?.activa ?? true,
     });

@@ -1,4 +1,3 @@
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -19,8 +18,18 @@ import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
 import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-const queryClient = new QueryClient();
+// Sin staleTime, las 8 consultas se recargaban cada vez que la ventana recuperaba el foco.
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60_000,
+      retry: 1,
+    },
+  },
+});
 
 function ProtectedRoutes() {
   const { user, loading: authLoading } = useAuth();
@@ -43,14 +52,14 @@ function ProtectedRoutes() {
 function AppContent() {
   const {
     gastos, addGasto, updateGasto, deleteGasto,
-    deudas, addDeuda, updateDeuda, deleteDeuda,
+    deudas, addDeuda, updateDeuda, deleteDeuda, reconocerMoraDeuda,
     metas,
     categorias, addCategoria, updateCategoria, deleteCategoria,
     pagosDeuda, addPagoDeuda, updatePagoDeuda, deletePagoDeuda,
     presupuestos, addPresupuesto, deletePresupuesto,
     ingresos, addIngreso, updateIngreso, deleteIngreso,
     config, updateConfig,
-    loading, configLoaded,
+    loading, configLoaded, configError,
   } = useFinancialData();
 
   const now = useMemo(() => new Date(), []);
@@ -72,21 +81,43 @@ function AppContent() {
     );
   }
 
+  // No se pudo leer la configuración. Sin esta rama sería indistinguible de un usuario nuevo y
+  // se mostraría el alta inicial en blanco, desde donde guardar sobrescribe la configuración real.
+  if (configError) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
+          <p className="font-medium">No pudimos cargar tu configuración.</p>
+          <p className="text-sm text-muted-foreground max-w-md">
+            Tus datos siguen guardados. Revisa tu conexión y vuelve a intentarlo; no modifiques nada
+            hasta que carguen para no sobrescribirlos.
+          </p>
+          <Button onClick={() => window.location.reload()}>Reintentar</Button>
+        </div>
+      </Layout>
+    );
+  }
+
   // Redirect to config if first time user (no config saved)
   if (!configLoaded) {
     return (
       <Layout deudas={deudas} onAddPago={addPagoDeuda}>
         <Routes>
           <Route path="/configuracion" element={
-            <ConfiguracionPage 
-              config={config} 
-              onUpdate={updateConfig} 
-              categorias={categorias} 
-              addCategoria={addCategoria} 
+            <ConfiguracionPage
+              config={config}
+              onUpdate={updateConfig}
+              categorias={categorias}
+              addCategoria={addCategoria}
               deleteCategoria={deleteCategoria}
               presupuestos={presupuestos}
               onSavePresupuesto={addPresupuesto}
               onDeletePresupuesto={deletePresupuesto}
+              ingresos={ingresos}
+              onAddIngreso={addIngreso}
+              onDeleteIngreso={deleteIngreso}
+              gastos={gastos}
+              deudas={deudas}
             />
           } />
           <Route path="*" element={<Navigate to="/configuracion" replace />} />
@@ -98,7 +129,7 @@ function AppContent() {
   return (
     <Layout deudas={deudas} onAddPago={addPagoDeuda}>
       <Routes>
-        <Route path="/" element={<ResumenPage gastos={gastos} deudas={deudas} metas={metas} config={config} presupuestos={presupuestos} ingresos={ingresos} pagos={pagosDeuda} onUpdateDeuda={updateDeuda} />} />
+        <Route path="/" element={<ResumenPage gastos={gastos} deudas={deudas} metas={metas} config={config} presupuestos={presupuestos} ingresos={ingresos} pagos={pagosDeuda} onUpdateDeuda={updateDeuda} onReconocerMora={(id, hasta) => reconocerMoraDeuda({ id, hasta })} />} />
         <Route path="/gastos" element={<GastosPage gastos={gastos} config={config} onAdd={addGasto} onUpdate={updateGasto} onDelete={deleteGasto} categorias={categorias} />} />
         <Route path="/deudas" element={<DeudasPage deudas={deudas} pagos={pagosDeuda} config={config} onAdd={addDeuda} onUpdate={updateDeuda} onDelete={deleteDeuda} onAddPago={addPagoDeuda} onDeletePago={deletePagoDeuda} />} />
         <Route path="/metas" element={<MetasPage />} />
@@ -121,12 +152,13 @@ function AppContent() {
           />
         } />
         <Route path="/reporte" element={
-          <ReporteImprimible 
+          <ReporteImprimible
             gastos={gastos}
             deudas={deudas}
             metas={metas}
             presupuestos={presupuestos}
             ingresos={ingresos}
+            pagos={pagosDeuda}
             config={config}
             healthScore={healthScore}
           />
@@ -138,10 +170,10 @@ function AppContent() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
-        <Toaster />
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
@@ -154,7 +186,8 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
-  </QueryClientProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

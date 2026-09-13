@@ -136,7 +136,10 @@ describe("MetaCard", () => {
     );
   });
 
-  it("marks the meta as inactive once the contribution completes it", async () => {
+  // `activa` significa "cuenta en mi plan", no "sin terminar". Antes se ponía en false al
+  // completar la meta, y como el dashboard, el reporte y el score filtran por `activa`, alcanzar
+  // el objetivo hacía desaparecer la meta y restaba 25 puntos al score de salud.
+  it("keeps the meta in the plan (activa) after a contribution completes it", async () => {
     const meta = makeMeta({
       monto_actual: 950_000,
       monto_objetivo: 1_000_000,
@@ -154,7 +157,7 @@ describe("MetaCard", () => {
     expect(onUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         monto_actual: 1_050_000,
-        activa: false,
+        activa: true,
       }),
     );
   });

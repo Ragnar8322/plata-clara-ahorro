@@ -1,11 +1,15 @@
 import { useMemo } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso } from "@/types";
+import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso, PagoDeuda } from "@/types";
 import { formatMoney } from "@/lib/formatters";
+import { metaEnPlan } from "@/lib/metaEstado";
+import { recomendarProximaDeuda } from "@/lib/deudaPriorizacion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Printer } from "lucide-react";
 
 interface Props {
   gastos: Gasto[];
@@ -13,12 +17,13 @@ interface Props {
   metas: MetaAhorro[];
   presupuestos: PresupuestoCategoria[];
   ingresos: Ingreso[];
+  pagos?: PagoDeuda[];
   config: Configuracion;
   healthScore: number;
 }
 
-export default function ReporteImprimible({ 
-  gastos, deudas, metas, presupuestos, ingresos, config, healthScore 
+export default function ReporteImprimible({
+  gastos, deudas, metas, presupuestos, ingresos, pagos = [], config, healthScore
 }: Props) {
   const now = new Date();
   const mesActual = format(now, "MMMM yyyy", { locale: es });
@@ -28,9 +33,10 @@ export default function ReporteImprimible({
     gastos.filter(g => g.fecha.startsWith(mesKey)).reduce((s, g) => s + g.monto, 0)
   , [gastos, mesKey]);
 
-  const totalIngresos = useMemo(() => 
-    ingresos.length > 0 ? ingresos.reduce((s, i) => s + i.monto, 0) : config.ingresoMensualNeto
-  , [ingresos, config.ingresoMensualNeto]);
+  const totalIngresos = useMemo(() => {
+    const suma = ingresos.reduce((s, i) => s + i.monto, 0);
+    return suma > 0 ? suma : config.ingresoMensualNeto;
+  }, [ingresos, config.ingresoMensualNeto]);
 
   const totalDeudas = useMemo(() => 
     deudas.filter(d => d.activa).reduce((s, d) => s + d.saldoActual, 0)
@@ -53,6 +59,16 @@ export default function ReporteImprimible({
         <div className="text-right">
           <p className="font-bold text-lg">{mesActual}</p>
           <p className="text-xs text-slate-400">Generado el {format(new Date(), "dd/MM/yyyy HH:mm")}</p>
+          <Button
+            size="sm"
+            variant="outline"
+            data-print-hide
+            className="mt-2 gap-1.5"
+            onClick={() => window.print()}
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir
+          </Button>
         </div>
       </div>
 
@@ -116,7 +132,15 @@ export default function ReporteImprimible({
             </div>
             <div className="mt-4 p-4 bg-slate-50 rounded-xl">
               <p className="text-xs font-bold text-slate-400 uppercase mb-2">Próxima Deuda a Liquidar</p>
-              {deudas.filter(d => d.activa).sort((a,b) => a.saldoActual - b.saldoActual)[0]?.nombre || "Ninguna"}
+              {/* Usa la misma recomendación que el dashboard. Antes ordenaba siempre por menor
+                  saldo e ignoraba la estrategia configurada, así que con Avalancha el papel
+                  recomendaba una deuda distinta a la de la pantalla. */}
+              {recomendarProximaDeuda(
+                deudas.filter(d => d.activa),
+                pagos,
+                config.estrategiaOrdenDeudas,
+                now,
+              )?.deuda.nombre || "Ninguna"}
             </div>
           </div>
         </section>
@@ -128,7 +152,7 @@ export default function ReporteImprimible({
             Progreso de Metas
           </h3>
           <div className="space-y-4">
-            {metas.filter(m => m.activa).slice(0, 3).map(m => (
+            {metas.filter(metaEnPlan).slice(0, 3).map(m => (
               <div key={m.id}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium underline decoration-primary/30 decoration-2">{m.emoji} {m.nombre}</span>
@@ -142,7 +166,7 @@ export default function ReporteImprimible({
                 </div>
               </div>
             ))}
-            {metas.filter(m => m.activa).length === 0 && (
+            {metas.filter(metaEnPlan).length === 0 && (
               <p className="text-sm italic text-slate-400">No hay metas activas registradas.</p>
             )}
           </div>

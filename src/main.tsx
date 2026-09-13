@@ -4,11 +4,13 @@ import { toast } from "sonner";
 import App from "./App.tsx";
 import "./index.css";
 
-// Interceptar y actualizar automáticamente
 const updateSW = registerSW({
   onNeedRefresh() {
+    // El aviso no caduca: recargar en medio de un formulario perdería lo escrito, así que la
+    // decisión es del usuario.
     toast("Nueva versión disponible", {
-      description: "La aplicación se actualizará para mostrar las últimas mejoras.",
+      description: "Recarga cuando termines lo que estás haciendo.",
+      duration: Infinity,
       action: {
         label: "Actualizar",
         onClick: () => updateSW(true),

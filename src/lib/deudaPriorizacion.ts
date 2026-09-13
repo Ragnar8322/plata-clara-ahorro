@@ -11,7 +11,13 @@ export function compararPorEstrategia(
   b: { saldo: number; tasaAnual: number },
   estrategia: EstrategiaOrden
 ): number {
-  return estrategia === "SaldoAscendente" ? a.saldo - b.saldo : b.tasaAnual - a.tasaAnual;
+  if (estrategia === "SaldoAscendente") {
+    // Con saldos iguales decide la tasa: antes el desempate quedaba al azar del orden del array,
+    // que es muy común con dos tarjetas de la misma entidad.
+    return a.saldo - b.saldo || b.tasaAnual - a.tasaAnual;
+  }
+  // Avalancha: a igual tasa (dos tarjetas al 25% es lo habitual), liquidar antes la más pequeña.
+  return b.tasaAnual - a.tasaAnual || a.saldo - b.saldo;
 }
 
 export interface RecomendacionPago {

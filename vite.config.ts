@@ -17,11 +17,17 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt" en vez de "autoUpdate": así onNeedRefresh sí se invoca y el usuario decide
+      // cuándo recargar. Con autoUpdate el service worker recargaba solo, y un despliegue
+      // a mitad de un formulario se llevaba por delante lo que estuviera escrito.
+      registerType: "prompt",
       includeAssets: ["favicon.ico", "icon-192.png", "icon-512.png"],
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // El bundle supera el límite por defecto de 2 MiB y quedaba fuera de la precarga,
+        // dejando la app sin funcionar offline pese al aviso de "lista sin conexión".
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
       },
       manifest: {
         name: "Plata Clara - Control Financiero",

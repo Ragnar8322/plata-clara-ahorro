@@ -1,6 +1,17 @@
 import { Gasto, Deuda, Configuracion, EstrategiaOrden } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 
+// PostgREST responde 204 sin error cuando ninguna fila coincide (sesión vencida, RLS,
+// registro ya borrado en otra pestaña). Sin pedir la fila de vuelta, una escritura que no
+// afectó nada es indistinguible de una exitosa y la UI confirma cambios que no ocurrieron.
+function assertFilaAfectada<T>(filas: T[] | null, descripcion: string): void {
+  if (!filas || filas.length === 0) {
+    throw new Error(
+      `No se pudo guardar ${descripcion}: el registro ya no existe o tu sesión expiró. Recarga e inténtalo de nuevo.`,
+    );
+  }
+}
+
 // ─── Gastos ───
 
 export async function loadGastos(): Promise<Gasto[]> {
@@ -57,7 +68,7 @@ export async function saveGasto(gasto: Omit<Gasto, "id">, userId: string): Promi
 }
 
 export async function updateGasto(gasto: Gasto): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("gastos")
     .update({
       fecha: gasto.fecha,
@@ -69,14 +80,17 @@ export async function updateGasto(gasto: Gasto): Promise<void> {
       frecuencia: gasto.frecuencia,
       notas: gasto.notas ?? null,
     })
-    .eq("id", gasto.id);
+    .eq("id", gasto.id)
+    .select();
 
   if (error) throw error;
+  assertFilaAfectada(data, "el gasto");
 }
 
 export async function deleteGasto(id: string): Promise<void> {
-  const { error } = await supabase.from("gastos").delete().eq("id", id);
+  const { data, error } = await supabase.from("gastos").delete().eq("id", id).select();
   if (error) throw error;
+  assertFilaAfectada(data, "el gasto");
 }
 
 // ─── Deudas ───
@@ -147,7 +161,7 @@ export async function saveDeuda(deuda: Omit<Deuda, "id">, userId: string): Promi
 }
 
 export async function updateDeuda(deuda: Deuda): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("deudas")
     .update({
       nombre: deuda.nombre,
@@ -163,14 +177,40 @@ export async function updateDeuda(deuda: Deuda): Promise<void> {
       notas: deuda.notas ?? null,
       mora_reconocida_hasta: deuda.moraReconocidaHasta ?? null,
     })
-    .eq("id", deuda.id);
+    .eq("id", deuda.id)
+    .select();
 
   if (error) throw error;
+  assertFilaAfectada(data, "la deuda");
+}
+
+/**
+ * Actualiza solo los campos indicados de una deuda, sin reescribir `saldo_actual`.
+ * `updateDeuda` envía la fila completa desde la copia que tenga el cliente en memoria, así que
+ * revierte cualquier pago registrado entretanto (otra pestaña, el trigger de pagos). Para cambios
+ * puntuales como reconocer la mora, esto escribe únicamente lo que cambió.
+ */
+export async function updateDeudaParcial(
+  id: string,
+  campos: Partial<Pick<Deuda, "activa" | "moraReconocidaHasta">>,
+): Promise<void> {
+  const patch: { activa?: boolean; mora_reconocida_hasta?: string | null } = {};
+  if (campos.activa !== undefined) patch.activa = campos.activa;
+  if (campos.moraReconocidaHasta !== undefined) {
+    patch.mora_reconocida_hasta = campos.moraReconocidaHasta ?? null;
+  }
+  if (Object.keys(patch).length === 0) return;
+
+  const { data, error } = await supabase.from("deudas").update(patch).eq("id", id).select();
+
+  if (error) throw error;
+  assertFilaAfectada(data, "la deuda");
 }
 
 export async function deleteDeuda(id: string): Promise<void> {
-  const { error } = await supabase.from("deudas").delete().eq("id", id);
+  const { data, error } = await supabase.from("deudas").delete().eq("id", id).select();
   if (error) throw error;
+  assertFilaAfectada(data, "la deuda");
 }
 
 // ─── Configuración ───
@@ -272,19 +312,23 @@ export async function saveCategoria(cat: Omit<CategoriaPersonalizada, "id" | "us
 }
 
 export async function updateCategoria(cat: CategoriaPersonalizada): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("categorias_gasto")
     .update({
       nombre: cat.nombre,
       color: cat.color,
     })
-    .eq("id", cat.id);
+    .eq("id", cat.id)
+    .select();
+
   if (error) throw error;
+  assertFilaAfectada(data, "la categoría");
 }
 
 export async function deleteCategoria(id: string): Promise<void> {
-  const { error } = await supabase.from("categorias_gasto").delete().eq("id", id);
+  const { data, error } = await supabase.from("categorias_gasto").delete().eq("id", id).select();
   if (error) throw error;
+  assertFilaAfectada(data, "la categoría");
 }
 
 // ─── Pagos de Deuda ───
@@ -329,20 +373,24 @@ export async function savePagoDeuda(pago: Omit<PagoDeuda, "id" | "user_id" | "cr
 }
 
 export async function updatePagoDeuda(pago: PagoDeuda): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("pagos_deudas")
     .update({
       monto: pago.monto,
       fecha: pago.fecha,
       notas: pago.notas,
     })
-    .eq("id", pago.id);
+    .eq("id", pago.id)
+    .select();
+
   if (error) throw error;
+  assertFilaAfectada(data, "el pago");
 }
 
 export async function deletePagoDeuda(id: string): Promise<void> {
-  const { error } = await supabase.from("pagos_deudas").delete().eq("id", id);
+  const { data, error } = await supabase.from("pagos_deudas").delete().eq("id", id).select();
   if (error) throw error;
+  assertFilaAfectada(data, "el pago");
 }
 
 // ─── Presupuestos por Categoría ───
@@ -372,7 +420,7 @@ export async function savePresupuesto(pres: Omit<PresupuestoCategoria, "id" | "u
       categoria: pres.categoria,
       limite_mensual: pres.limite_mensual,
       updated_at: new Date().toISOString(),
-    }, { onConflict: "user_id, categoria" })
+    }, { onConflict: "user_id,categoria" })
     .select()
     .single();
 
@@ -384,8 +432,9 @@ export async function savePresupuesto(pres: Omit<PresupuestoCategoria, "id" | "u
 }
 
 export async function deletePresupuesto(id: string): Promise<void> {
-  const { error } = await supabase.from("presupuestos_categorias").delete().eq("id", id);
+  const { data, error } = await supabase.from("presupuestos_categorias").delete().eq("id", id).select();
   if (error) throw error;
+  assertFilaAfectada(data, "el presupuesto");
 }
 
 // ─── Ingresos (Múltiples Fuentes) ───
@@ -431,7 +480,7 @@ export async function saveIngreso(ingreso: Omit<Ingreso, "id" | "user_id" | "cre
 }
 
 export async function updateIngreso(ingreso: Ingreso): Promise<void> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("ingresos")
     .update({
       nombre: ingreso.nombre,
@@ -439,11 +488,15 @@ export async function updateIngreso(ingreso: Ingreso): Promise<void> {
       categoria: ingreso.categoria,
       frecuencia: ingreso.frecuencia,
     })
-    .eq("id", ingreso.id);
+    .eq("id", ingreso.id)
+    .select();
+
   if (error) throw error;
+  assertFilaAfectada(data, "el ingreso");
 }
 
 export async function deleteIngreso(id: string): Promise<void> {
-  const { error } = await supabase.from("ingresos").delete().eq("id", id);
+  const { data, error } = await supabase.from("ingresos").delete().eq("id", id).select();
   if (error) throw error;
+  assertFilaAfectada(data, "el ingreso");
 }

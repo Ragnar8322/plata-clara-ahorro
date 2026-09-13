@@ -24,8 +24,8 @@ interface Props {
   config: Configuracion;
   onEdit: (deuda: Deuda) => void;
   onDelete: (id: string) => void;
-  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
-  onDeletePago?: (id: string) => Promise<any>;
+  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<unknown>;
+  onDeletePago?: (id: string) => Promise<unknown>;
 }
 
 export default function DeudasTable({ deudas, pagos = [], config, onEdit, onDelete, onAddPago, onDeletePago }: Props) {
@@ -176,9 +176,30 @@ export default function DeudasTable({ deudas, pagos = [], config, onEdit, onDele
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">{pago.fecha}</span>
                         {onDeletePago && (
-                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => onDeletePago(pago.id)}>
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                          // Borrar un pago no solo elimina la fila: el trigger devuelve ese monto
+                          // al saldo de la deuda. Es destructivo, así que se confirma como el resto.
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive">
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar este pago?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Se eliminará el pago de {formatMoney(pago.monto, config)} del {pago.fecha} y
+                                  ese monto volverá a sumarse al saldo de la deuda. Esta acción no se puede deshacer.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDeletePago(pago.id)}>
+                                  Eliminar pago
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         )}
                       </div>
                     </div>

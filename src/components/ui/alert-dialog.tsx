@@ -7,7 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 
 const AlertDialogOpenContext = React.createContext(false);
 
-interface AlertDialogProps extends React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Root> {}
+type AlertDialogProps = React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Root>;
 
 const AlertDialog = ({ open, defaultOpen, onOpenChange, children, ...props }: AlertDialogProps) => {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen ?? false);

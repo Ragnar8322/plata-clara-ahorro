@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
   loadGastos, saveGasto, updateGasto as updateGastoDb, deleteGasto as deleteGastoDb,
-  loadDeudas, saveDeuda, updateDeuda as updateDeudaDb, deleteDeuda as deleteDeudaDb,
+  loadDeudas, saveDeuda, updateDeuda as updateDeudaDb, deleteDeuda as deleteDeudaDb, updateDeudaParcial,
   loadConfiguracion, saveConfiguracion,
   loadCategorias, saveCategoria, updateCategoria as updateCategoriaDb, deleteCategoria as deleteCategoriaDb,
   loadPagosDeuda, savePagoDeuda, updatePagoDeuda as updatePagoDeudaDb, deletePagoDeuda as deletePagoDeudaDb,
@@ -42,7 +42,7 @@ export function useFinancialData() {
     enabled: !!user,
   });
 
-  const { data: config = defaultConfig, isLoading: loadingConfig } = useQuery({
+  const { data: config = defaultConfig, isLoading: loadingConfig, isError: configError } = useQuery({
     queryKey: ["configuracion", user?.id],
     queryFn: loadConfiguracion,
     enabled: !!user,
@@ -140,6 +140,17 @@ export function useFinancialData() {
     onError: (err: Error) => toast.error("Error eliminando deuda: " + err.message),
   }).mutateAsync;
 
+  // Escribe solo `mora_reconocida_hasta`. Usar `updateDeuda` aquí reenviaba la fila completa desde
+  // la copia en memoria y revertía cualquier pago aplicado entretanto por el trigger.
+  const reconocerMoraDeuda = useMutation({
+    mutationFn: (args: { id: string; hasta: string }) =>
+      updateDeudaParcial(args.id, { moraReconocidaHasta: args.hasta }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["deudas", user?.id] });
+    },
+    onError: (err: Error) => toast.error("Error actualizando la mora: " + err.message),
+  }).mutateAsync;
+
   // Metas Mutations
   const addMeta = useMutation({
     mutationFn: async (meta: Parameters<typeof saveMeta>[0]) => {
@@ -220,7 +231,9 @@ export function useFinancialData() {
   const updatePagoDeuda = useMutation({
     mutationFn: updatePagoDeudaDb,
     onSuccess: () => {
+      // El trigger de pagos_deudas reajusta deudas.saldo_actual también al editar y al borrar.
       queryClient.invalidateQueries({ queryKey: ["pagosDeuda", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["deudas", user?.id] });
       toast.success("Pago actualizado");
     },
     onError: (err: Error) => toast.error("Error actualizando pago: " + err.message),
@@ -230,6 +243,7 @@ export function useFinancialData() {
     mutationFn: deletePagoDeudaDb,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["pagosDeuda", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["deudas", user?.id] });
       toast.success("Pago eliminado");
     },
     onError: (err: Error) => toast.error("Error eliminando pago: " + err.message),
@@ -299,12 +313,14 @@ export function useFinancialData() {
     onError: (err: Error) => toast.error("Error guardando configuración: " + err.message),
   }).mutateAsync;
 
-  const loading = loadingGastos || loadingDeudas || loadingConfig || loadingMetas || loadingCategorias || loadingPagos;
-  const configLoaded = config.id !== "default";
+  // Si la carga falló, `config` cae al valor por defecto y es indistinguible de un usuario nuevo.
+  // `configError` permite mostrar un error en vez de arrastrar al usuario al alta inicial en blanco,
+  // desde donde guardar sobrescribiría su configuración real con ceros.
+  const configLoaded = !configError && config.id !== "default";
 
   return {
     gastos, addGasto, updateGasto, deleteGasto,
-    deudas, addDeuda, updateDeuda, deleteDeuda,
+    deudas, addDeuda, updateDeuda, deleteDeuda, reconocerMoraDeuda,
     metas, addMeta, updateMeta, deleteMeta,
     categorias, addCategoria, updateCategoria, deleteCategoria,
     pagosDeuda, addPagoDeuda, updatePagoDeuda, deletePagoDeuda,
@@ -313,5 +329,6 @@ export function useFinancialData() {
     config, updateConfig,
     loading: loadingGastos || loadingDeudas || loadingConfig || loadingMetas || loadingCategorias || loadingPagos || loadingPresupuestos || loadingIngresos,
     configLoaded,
+    configError,
   };
 }

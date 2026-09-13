@@ -8,10 +8,10 @@ interface Props {
   deudas?: Deuda[];
   categorias?: CategoriaPersonalizada[];
   config: Configuracion;
-  onAdd: (g: Omit<Gasto, "id">) => void;
-  onUpdate: (g: Gasto) => void;
-  onDelete: (id: string) => void;
-  onAddPagoDeuda?: (pago: Omit<PagoDeuda, "id">) => void;
+  onAdd: (g: Omit<Gasto, "id">) => void | Promise<unknown>;
+  onUpdate: (g: Gasto) => void | Promise<unknown>;
+  onDelete: (id: string) => void | Promise<unknown>;
+  onAddPagoDeuda?: (pago: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => void | Promise<unknown>;
 }
 
 export default function GastosPage({ 
@@ -20,21 +20,24 @@ export default function GastosPage({
 }: Props) {
   const [editando, setEditando] = useState<Gasto | null>(null);
 
-  const handleSubmit = (data: Omit<Gasto, "id"> & { id?: string; deudaId?: string }) => {
+  const handleSubmit = async (data: Omit<Gasto, "id"> & { id?: string; deudaId?: string }) => {
     if (data.id) {
-      onUpdate(data as Gasto);
+      await onUpdate(data as Gasto);
       setEditando(null);
-    } else {
-      // Si hay vinculación a deuda, registrar el pago también
-      if (data.deudaId && onAddPagoDeuda) {
-        onAddPagoDeuda({
-          deuda_id: data.deudaId,
-          monto: data.monto,
-          fecha: data.fecha,
-          notas: `Pago automático desde Gasto: ${data.descripcion}`
-        });
-      }
-      onAdd(data);
+      return;
+    }
+
+    // El gasto va primero y se espera: antes el pago se disparaba sin await, así que si el gasto
+    // fallaba el saldo de la deuda ya había bajado sin que existiera el gasto que lo justificaba.
+    await onAdd(data);
+
+    if (data.deudaId && onAddPagoDeuda) {
+      await onAddPagoDeuda({
+        deuda_id: data.deudaId,
+        monto: data.monto,
+        fecha: data.fecha,
+        notas: `Pago automático desde Gasto: ${data.descripcion}`,
+      });
     }
   };
 

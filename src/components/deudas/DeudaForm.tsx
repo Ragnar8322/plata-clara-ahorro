@@ -18,6 +18,11 @@ import {
 } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
 
+// Los campos numéricos arrancan en blanco, no en 0: react-hook-form exige un número,
+// así que se marca el hueco con un único cast explicado en lugar de repartir `as any`.
+const CAMPO_NUMERICO_VACIO = undefined as unknown as number;
+const CAMPO_SELECT_VACIO = undefined as unknown as string;
+
 export const deudaSchema = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio"),
   tipo: z.enum(TIPOS_DEUDA as [string, ...string[]], {
@@ -26,27 +31,32 @@ export const deudaSchema = z.object({
   entidad: z.string().min(1, "La entidad es obligatoria"),
   saldoInicial: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
   saldoActual: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
-  tasaInteresAnual: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
+  // Sin el preprocess, un campo vacío se convierte en 0 y pasa la validación: una tarjeta al
+  // 28,5% quedaba registrada al 0% y corrompía todas las proyecciones.
+  tasaInteresAnual: z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? undefined : v),
+    z.coerce
+      .number({ required_error: "La tasa es obligatoria", invalid_type_error: "La tasa es obligatoria" })
+      .min(0, "Debe ser mayor o igual a 0")
+      .max(500, "Revisa la tasa: ¿seguro que es mayor a 500%?"),
+  ),
   pagoMinimoMensual: z.coerce.number().min(0, "Debe ser mayor o igual a 0"),
   diaCorteOPago: z.coerce.number().min(1, "Entre 1 y 31").max(31, "Entre 1 y 31"),
   pagoExtraPlaneadoMensual: z.coerce.number().min(0).default(0),
   activa: z.boolean().default(true),
   notas: z.string().optional(),
-}).refine(data => data.saldoActual <= data.saldoInicial, {
-  message: "El saldo actual es mayor al saldo inicial",
-  path: ["saldoActual"]
 });
 
 type FormValues = z.infer<typeof deudaSchema>;
 
 interface Props {
   deudaEditar?: Deuda | null;
-  onSubmit: (deuda: Omit<Deuda, "id"> & { id?: string }) => void;
+  onSubmit: (deuda: Omit<Deuda, "id"> & { id?: string }) => void | Promise<unknown>;
   onCancel?: () => void;
 }
 
 export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
-  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(deudaSchema),
     defaultValues: {
       nombre: "",
@@ -81,13 +91,13 @@ export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
     } else {
       reset({
         nombre: "",
-        tipo: undefined as any,
+        tipo: CAMPO_SELECT_VACIO,
         entidad: "",
-        saldoInicial: undefined as any,
-        saldoActual: undefined as any,
-        tasaInteresAnual: undefined as any,
-        pagoMinimoMensual: undefined as any,
-        diaCorteOPago: undefined as any,
+        saldoInicial: CAMPO_NUMERICO_VACIO,
+        saldoActual: CAMPO_NUMERICO_VACIO,
+        tasaInteresAnual: CAMPO_NUMERICO_VACIO,
+        pagoMinimoMensual: CAMPO_NUMERICO_VACIO,
+        diaCorteOPago: CAMPO_NUMERICO_VACIO,
         pagoExtraPlaneadoMensual: 0,
         activa: true,
         notas: "",
@@ -95,8 +105,8 @@ export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
     }
   }, [deudaEditar, reset]);
 
-  const onValidSubmit = (data: FormValues) => {
-    onSubmit({
+  const onValidSubmit = async (data: FormValues) => {
+    await onSubmit({
       ...(deudaEditar ? { id: deudaEditar.id } : {}),
       nombre: data.nombre,
       tipo: data.tipo as Deuda["tipo"],
@@ -112,8 +122,8 @@ export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
     });
     if (!deudaEditar) {
       reset({
-        nombre: "", entidad: "", saldoInicial: undefined as any, saldoActual: undefined as any,
-        tasaInteresAnual: undefined as any, pagoMinimoMensual: undefined as any, diaCorteOPago: undefined as any,
+        nombre: "", entidad: "", saldoInicial: CAMPO_NUMERICO_VACIO, saldoActual: CAMPO_NUMERICO_VACIO,
+        tasaInteresAnual: CAMPO_NUMERICO_VACIO, pagoMinimoMensual: CAMPO_NUMERICO_VACIO, diaCorteOPago: CAMPO_NUMERICO_VACIO,
         pagoExtraPlaneadoMensual: 0, activa: true, notas: ""
       });
     }
@@ -246,7 +256,9 @@ export default function DeudaForm({ deudaEditar, onSubmit, onCancel }: Props) {
           </div>
 
           <div className="sm:col-span-2 lg:col-span-3 flex gap-2">
-            <Button type="submit">{deudaEditar ? "Guardar cambios" : "Agregar deuda"}</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Guardando..." : deudaEditar ? "Guardar cambios" : "Agregar deuda"}
+            </Button>
             {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>}
           </div>
         </form>

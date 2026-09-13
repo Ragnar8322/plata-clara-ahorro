@@ -67,8 +67,8 @@ describe("recomendarProximaDeuda", () => {
   it("falls back to SaldoAscendente strategy when no deuda is in mora", () => {
     const hoy = new Date(2026, 2, 20);
     const pagos: PagoDeuda[] = [
-      { id: "p1", deuda_id: "alto", monto: 1, fecha: "2026-03-16" },
-      { id: "p2", deuda_id: "bajo", monto: 1, fecha: "2026-03-16" },
+      { id: "p1", deuda_id: "alto", monto: 50_000, fecha: "2026-03-16" },
+      { id: "p2", deuda_id: "bajo", monto: 50_000, fecha: "2026-03-16" },
     ];
     const deudas = [
       makeDeuda({ id: "alto", saldoActual: 5_000_000, diaCorteOPago: 15 }),
@@ -83,8 +83,8 @@ describe("recomendarProximaDeuda", () => {
   it("falls back to InteresDescendente strategy when no deuda is in mora", () => {
     const hoy = new Date(2026, 2, 20);
     const pagos: PagoDeuda[] = [
-      { id: "p1", deuda_id: "baja-tasa", monto: 1, fecha: "2026-03-16" },
-      { id: "p2", deuda_id: "alta-tasa", monto: 1, fecha: "2026-03-16" },
+      { id: "p1", deuda_id: "baja-tasa", monto: 50_000, fecha: "2026-03-16" },
+      { id: "p2", deuda_id: "alta-tasa", monto: 50_000, fecha: "2026-03-16" },
     ];
     const deudas = [
       makeDeuda({ id: "baja-tasa", tasaInteresAnual: 10, diaCorteOPago: 15 }),

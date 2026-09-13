@@ -10,8 +10,8 @@ import { Plus, Trash2, Banknote } from "lucide-react";
 interface Props {
   ingresos: Ingreso[];
   config: Configuracion;
-  onAdd: (ing: Omit<Ingreso, "id" | "user_id" | "created_at">) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  onAdd: (ing: Omit<Ingreso, "id" | "user_id" | "created_at">) => Promise<unknown>;
+  onDelete: (id: string) => Promise<unknown>;
 }
 
 export default function IngresosManager({ ingresos, config, onAdd, onDelete }: Props) {

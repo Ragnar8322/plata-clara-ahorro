@@ -22,7 +22,7 @@ const navItems = [
 interface Props {
   children: ReactNode;
   deudas?: Deuda[];
-  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
+  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<unknown>;
 }
 
 export default function Layout({ children, deudas = [], onAddPago }: Props) {
@@ -91,6 +91,7 @@ export default function Layout({ children, deudas = [], onAddPago }: Props) {
       {deudasActivas.length > 0 && (
         <Button
           onClick={() => setPagoDialogOpen(true)}
+          data-print-hide
           title="Registrar pago"
           className="fixed bottom-6 right-6 z-40 h-16 w-16 rounded-full bg-emerald-600 p-0 text-white shadow-lg shadow-emerald-900/30 hover:bg-emerald-700 hover:scale-105 active:scale-95 transition-transform"
         >

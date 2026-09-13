@@ -12,8 +12,8 @@ interface Props {
   onAdd: (d: Omit<Deuda, "id">) => void;
   onUpdate: (d: Deuda) => void;
   onDelete: (id: string) => void;
-  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
-  onDeletePago?: (id: string) => Promise<any>;
+  onAddPago?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<unknown>;
+  onDeletePago?: (id: string) => Promise<unknown>;
 }
 
 export default function DeudasPage({ deudas, pagos = [], config, onAdd, onUpdate, onDelete, onAddPago, onDeletePago }: Props) {

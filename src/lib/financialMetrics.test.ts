@@ -170,4 +170,61 @@ describe("calculateHealthScore", () => {
     expect(score).toBeGreaterThanOrEqual(0);
     expect(score).toBeLessThanOrEqual(100);
   });
+  // ─── Regresiones de la auditoría ───
+
+  it("no castiga al usuario por completar una meta: seguir contándola mantiene el score", () => {
+    const casi = makeMeta({ monto_objetivo: 1_000_000, monto_actual: 950_000 });
+    const completada = makeMeta({ monto_objetivo: 1_000_000, monto_actual: 1_000_000, activa: false });
+
+    const antes = calculateHealthScore([makeIngreso({ monto: 3_000_000 })], [], [casi], [], MES_KEY, 0);
+    const despues = calculateHealthScore([makeIngreso({ monto: 3_000_000 })], [], [completada], [], MES_KEY, 0);
+
+    expect(despues).toBeGreaterThanOrEqual(antes);
+  });
+
+  it("no inventa un ingreso de $1 cuando no hay ingresos: no puede dar 75", () => {
+    const score = calculateHealthScore([], [], [], [], MES_KEY, 0);
+
+    // Sin ingreso conocido no se evalúan endeudamiento ni ahorro: solo queda el neutral de metas.
+    expect(score).toBe(15);
+  });
+
+  it("usa el ingreso configurado cuando las fuentes registradas suman cero", () => {
+    const conFuenteEnCero = calculateHealthScore(
+      [makeIngreso({ monto: 0 })], [], [], [], MES_KEY, 3_000_000,
+    );
+    const sinFuentes = calculateHealthScore([], [], [], [], MES_KEY, 3_000_000);
+
+    expect(conFuenteEnCero).toBe(sinFuentes);
+  });
+
+  it("no se lee como Saludable cuando se gasta más de lo que se ingresa", () => {
+    const score = calculateHealthScore(
+      [makeIngreso({ monto: 3_000_000 })],
+      [makeDeuda({ pagoMinimoMensual: 400_000 })],
+      [makeMeta({ monto_objetivo: 1_000_000, monto_actual: 900_000 })],
+      [makeGasto({ monto: 9_000_000, fecha: "2026-08-05" })],
+      MES_KEY,
+      0,
+    );
+
+    expect(score).toBeLessThan(60);
+  });
+
+  it("no resta dos veces las cuotas registradas además como gasto de categoría Deudas", () => {
+    const ingresos = [makeIngreso({ monto: 3_000_000 })];
+    const deudas = [makeDeuda({ pagoMinimoMensual: 400_000 })];
+
+    const sinRegistrarla = calculateHealthScore(ingresos, deudas, [], [], MES_KEY, 0);
+    const registrandolaComoGasto = calculateHealthScore(
+      ingresos,
+      deudas,
+      [],
+      [makeGasto({ monto: 400_000, categoria: "Deudas", fecha: "2026-08-05" })],
+      MES_KEY,
+      0,
+    );
+
+    expect(registrandolaComoGasto).toBe(sinRegistrarla);
+  });
 });

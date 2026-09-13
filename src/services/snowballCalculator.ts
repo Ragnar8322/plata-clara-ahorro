@@ -31,7 +31,7 @@ export function simularBolaDeNieve(
   fechaInicio: string // "YYYY-MM"
 ): ResultadoSimulacion {
   // Filter only active debts with balance > 0
-  let deudasSim: DeudaSim[] = deudas
+  const deudasSim: DeudaSim[] = deudas
     .filter((d) => d.activa && d.saldoActual > 0)
     .map((d) => ({
       id: d.id,
@@ -62,10 +62,14 @@ export function simularBolaDeNieve(
     const fechaMes = calcularFecha(anioInicio, mesInicio, mesNumero);
 
     // 1. Apply interest to all active debts
+    // Se guarda el interés realmente devengado por deuda: el desglose del mes debe usar esta
+    // cifra y no una reestimación, o la columna de intereses no cuadra con el total.
+    const interesesDelMes = new Map<string, number>();
     for (const d of activas) {
       const interes = d.saldo * d.tasaMensual;
       d.saldo += interes;
       totalIntereses += interes;
+      interesesDelMes.set(d.id, interes);
     }
 
     // 2. Calculate minimum payments
@@ -114,8 +118,11 @@ export function simularBolaDeNieve(
     // 6. Build monthly record
     const pagosMes: PagoMensualDeuda[] = deudasSim.map((d) => {
       const pagoTotal = pagosMinimos.get(d.id) || 0;
-      // Simplified: interest portion is approximate
-      const interesAprox = Math.min(pagoTotal, (d.saldo + pagoTotal) * d.tasaMensual);
+      // El pago cubre primero los intereses devengados este mes; lo que exceda al pago queda
+      // capitalizado en el saldo. Antes se recalculaba sobre el saldo YA con intereses aplicados
+      // (`(saldo + pagoTotal) * tasaMensual`), inflando el interés en un factor (1 + tasaMensual).
+      const interesDevengado = interesesDelMes.get(d.id) ?? 0;
+      const abonoInteres = Math.min(pagoTotal, interesDevengado);
 
       if (d.saldo <= 0.01 && !d.pagada) {
         d.saldo = 0;
@@ -127,8 +134,8 @@ export function simularBolaDeNieve(
         deudaId: d.id,
         nombreDeuda: d.nombre,
         pagoTotal,
-        abonoInteres: Math.max(0, Math.round(interesAprox * 100) / 100),
-        abonoCapital: Math.max(0, Math.round((pagoTotal - interesAprox) * 100) / 100),
+        abonoInteres: Math.max(0, Math.round(abonoInteres * 100) / 100),
+        abonoCapital: Math.max(0, Math.round((pagoTotal - abonoInteres) * 100) / 100),
         saldoFinal: Math.max(0, Math.round(d.saldo * 100) / 100),
         pagada: d.pagada,
       };

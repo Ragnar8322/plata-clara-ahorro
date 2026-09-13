@@ -17,6 +17,11 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Los campos numéricos arrancan en blanco, no en 0: react-hook-form exige un número,
+// así que se marca el hueco con un único cast explicado en lugar de repartir `as any`.
+const CAMPO_NUMERICO_VACIO = undefined as unknown as number;
+const CAMPO_SELECT_VACIO = undefined as unknown as string;
+
 export const gastoSchema = z.object({
   fecha: z.string().min(1, "La fecha es obligatoria"),
   categoria: z.string().min(1, "La categoría es obligatoria"),
@@ -39,12 +44,12 @@ interface GastoFormProps {
   gastoEditar?: Gasto | null;
   categorias?: CategoriaPersonalizada[];
   deudas?: Deuda[];
-  onSubmit: (gasto: Omit<Gasto, "id"> & { id?: string; deudaId?: string }) => void;
+  onSubmit: (gasto: Omit<Gasto, "id"> & { id?: string; deudaId?: string }) => void | Promise<unknown>;
   onCancel?: () => void;
 }
 
 export default function GastoForm({ gastoEditar, categorias = [], deudas = [], onSubmit, onCancel }: GastoFormProps) {
-  const { register, handleSubmit, control, reset, watch, formState: { errors } } = useForm<FormValues>({
+  const { register, handleSubmit, control, reset, watch, formState: { errors, isSubmitting } } = useForm<FormValues>({
     resolver: zodResolver(gastoSchema),
     defaultValues: {
       fecha: new Date().toISOString().split("T")[0],
@@ -78,17 +83,17 @@ export default function GastoForm({ gastoEditar, categorias = [], deudas = [], o
         fecha: new Date().toISOString().split("T")[0],
         categoria: "",
         descripcion: "",
-        monto: undefined as any,
-        metodoPago: undefined as any,
-        tipo: undefined as any,
+        monto: CAMPO_NUMERICO_VACIO,
+        metodoPago: CAMPO_SELECT_VACIO,
+        tipo: CAMPO_SELECT_VACIO,
         frecuencia: "Único",
         notas: "",
       });
     }
   }, [gastoEditar, reset]);
 
-  const onValidSubmit = (data: FormValues) => {
-    onSubmit({
+  const onValidSubmit = async (data: FormValues) => {
+    await onSubmit({
       ...(gastoEditar ? { id: gastoEditar.id } : {}),
       fecha: data.fecha,
       categoria: data.categoria as Gasto["categoria"],
@@ -104,7 +109,7 @@ export default function GastoForm({ gastoEditar, categorias = [], deudas = [], o
       reset({
         fecha: new Date().toISOString().split("T")[0],
         descripcion: "",
-        monto: undefined as any,
+        monto: CAMPO_NUMERICO_VACIO,
         notas: "",
         // Keep previously selected categoria, metodoPago, tipo, frecuencia for speed entry
       });
@@ -256,7 +261,10 @@ export default function GastoForm({ gastoEditar, categorias = [], deudas = [], o
           </div>
 
           <div className="sm:col-span-2 flex gap-2">
-            <Button type="submit">{gastoEditar ? "Guardar cambios" : "Agregar gasto"}</Button>
+            {/* Sin deshabilitar, dos clics rápidos crean dos registros idénticos. */}
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Guardando..." : gastoEditar ? "Guardar cambios" : "Agregar gasto"}
+            </Button>
             {onCancel && <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>}
           </div>
         </form>

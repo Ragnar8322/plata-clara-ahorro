@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { MetaAhorro } from "@/types";
 import { formatMoney } from "@/lib/formatters";
+import { metaCompletada, progresoMeta } from "@/lib/metaEstado";
 import { useFinancialData } from "@/hooks/useFinancialData";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -17,8 +18,8 @@ import { es } from "date-fns/locale";
 
 interface Props {
   meta: MetaAhorro;
-  onUpdate: (meta: MetaAhorro) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  onUpdate: (meta: MetaAhorro) => Promise<unknown>;
+  onDelete: (id: string) => Promise<unknown>;
 }
 
 export default function MetaCard({ meta, onUpdate, onDelete }: Props) {
@@ -26,18 +27,19 @@ export default function MetaCard({ meta, onUpdate, onDelete }: Props) {
   const [isAporteOpen, setIsAporteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
-  const porcentaje = Math.min(100, Math.round((meta.monto_actual / meta.monto_objetivo) * 100));
-  const isCompletada = meta.monto_actual >= meta.monto_objetivo;
+  const porcentaje = Math.round(progresoMeta(meta) * 100);
+  const isCompletada = metaCompletada(meta);
   const falta = Math.max(0, meta.monto_objetivo - meta.monto_actual);
 
   const mesesRestantes = meta.aporte_mensual_planeado > 0 ? Math.ceil(falta / meta.aporte_mensual_planeado) : null;
   const fechaEstimada = mesesRestantes !== null ? addMonths(new Date(), mesesRestantes) : null;
 
   const handleAporte = async (monto: number) => {
+    // `activa` se conserva: significa "cuenta en mi plan", no "sin terminar". Al desactivarla
+    // aquí, alcanzar el objetivo borraba la meta del dashboard, del reporte y del score.
     await onUpdate({
       ...meta,
       monto_actual: meta.monto_actual + monto,
-      activa: meta.monto_actual + monto < meta.monto_objetivo
     });
     setIsAporteOpen(false);
   };
@@ -55,16 +57,20 @@ export default function MetaCard({ meta, onUpdate, onDelete }: Props) {
             <span>{meta.emoji}</span> {meta.nombre}
           </CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            {isCompletada 
-              ? "¡Meta alcanzada! 🎉" 
-              : fechaEstimada 
-                ? (
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    Est. {format(fechaEstimada, "MMM yyyy", { locale: es })}
-                  </span>
-                )
-                : meta.fecha_objetivo ? `Para: ${meta.fecha_objetivo}` : "Sin fecha límite"}
+            {/* La fecha que el usuario fijó manda sobre la estimada: antes, con aporte mensual
+                planeado la estimación siempre ganaba y `fecha_objetivo` no se mostraba nunca. */}
+            {isCompletada
+              ? "¡Meta alcanzada! 🎉"
+              : meta.fecha_objetivo
+                ? `Para: ${meta.fecha_objetivo}`
+                : fechaEstimada
+                  ? (
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Est. {format(fechaEstimada, "MMM yyyy", { locale: es })}
+                    </span>
+                  )
+                  : "Sin fecha límite"}
           </p>
         </div>
         <div className="flex gap-1">

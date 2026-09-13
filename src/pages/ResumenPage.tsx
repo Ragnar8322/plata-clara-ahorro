@@ -14,6 +14,11 @@ import { useMemo } from "react";
 import { calculateHealthScore } from "@/lib/financialMetrics";
 import { calcularDiasMora, fechaUltimoCorte } from "@/lib/moraCalculator";
 import { recomendarProximaDeuda } from "@/lib/deudaPriorizacion";
+import { metaEnPlan } from "@/lib/metaEstado";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   gastos: Gasto[];
@@ -24,11 +29,17 @@ interface Props {
   pagos?: PagoDeuda[];
   config: Configuracion;
   onUpdateDeuda?: (d: Deuda) => void;
+  onReconocerMora?: (id: string, hasta: string) => Promise<unknown>;
 }
 
-export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], pagos = [], config, onUpdateDeuda }: Props) {
-  const now = new Date();
-  const mesActual = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+export default function ResumenPage({ gastos, deudas, metas = [], presupuestos = [], ingresos = [], pagos = [], config, onUpdateDeuda, onReconocerMora }: Props) {
+  // Crear `now` en cada render cambiaba las dependencias de los useMemo de mora y recomendación,
+  // que se recalculaban siempre. App.tsx ya lo hace así.
+  const now = useMemo(() => new Date(), []);
+  const mesActual = useMemo(
+    () => `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`,
+    [now],
+  );
 
   const gastosMesActual = useMemo(
     () => gastos.filter((g) => g.fecha.startsWith(mesActual)),
@@ -44,22 +55,16 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
   const totalDeudas = useMemo(() => deudasActivas.reduce((s, d) => s + d.saldoActual, 0), [deudasActivas]);
   const totalMinimos = useMemo(() => deudasActivas.reduce((s, d) => s + d.pagoMinimoMensual, 0), [deudasActivas]);
 
+  // El respaldo al ingreso configurado se aplica también cuando las fuentes registradas suman
+  // cero: antes bastaba añadir una fuente en $0 para que el ingreso de toda la app pasara a 0.
   const ingresoMensualTotal = useMemo(() => {
-    if (ingresos.length > 0) {
-      return ingresos.reduce((sum, ing) => sum + ing.monto, 0);
-    }
-    return config.ingresoMensualNeto;
+    const suma = ingresos.reduce((sum, ing) => sum + ing.monto, 0);
+    return suma > 0 ? suma : config.ingresoMensualNeto;
   }, [ingresos, config.ingresoMensualNeto]);
 
   const margen = ingresoMensualTotal - totalGastosMes - totalMinimos;
 
-  const metasActivas = useMemo(() => metas.filter((m) => m.activa), [metas]);
-  const progresoMetas = useMemo(() => {
-    if (metasActivas.length === 0) return 0;
-    const totalActual = metasActivas.reduce((s, m) => s + m.monto_actual, 0);
-    const totalObjetivo = metasActivas.reduce((s, m) => s + m.monto_objetivo, 0);
-    return totalObjetivo > 0 ? (totalActual / totalObjetivo) : 0;
-  }, [metasActivas]);
+  const metasActivas = useMemo(() => metas.filter(metaEnPlan), [metas]);
 
   const healthScore = useMemo(() => 
     calculateHealthScore(ingresos, deudas, metas, gastos, mesActual, config.ingresoMensualNeto)
@@ -136,9 +141,11 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
     [deudasActivas, pagos, config.estrategiaOrdenDeudas, now]
   );
 
-  const marcarMoraComoCubierta = (deuda: Deuda) => {
-    if (!onUpdateDeuda) return;
-    onUpdateDeuda({ ...deuda, moraReconocidaHasta: fechaUltimoCorte(deuda, now) });
+  const marcarMoraComoCubierta = async (deuda: Deuda) => {
+    if (!onReconocerMora) return;
+    // Solo se escribe `moraReconocidaHasta`. Antes se reenviaba la deuda completa desde la copia
+    // en memoria, lo que revertía cualquier pago registrado entretanto.
+    await onReconocerMora(deuda.id, fechaUltimoCorte(deuda, now));
     toast.success(`${deuda.nombre} marcada como al día`, {
       description: "El saldo ya reflejaba este pago; no se registró ningún movimiento nuevo.",
     });
@@ -237,7 +244,10 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
                   <Progress 
                     value={Math.min(alerta.porcentaje * 100, 100)} 
                     className="h-2 mt-1"
-                    indicatorColor={esExcedido ? "bg-destructive" : "bg-warning"}
+                    // `indicatorColor` se aplica como style.backgroundColor: necesita un color CSS.
+                    // Con clases de Tailwind el navegador descartaba la regla y la barra de un
+                    // presupuesto excedido se veía azul, igual que una sana.
+                    indicatorColor={esExcedido ? "hsl(var(--destructive))" : "hsl(var(--warning))"}
                   />
                 </AlertDescription>
               </Alert>
@@ -257,16 +267,35 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
                 <span>
                   {diasMora} {diasMora === 1 ? "día" : "días"} sin pago registrado desde el último corte. Saldo actual: {formatMoney(deuda.saldoActual, config)}.
                 </span>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="border-destructive/40 text-destructive hover:bg-destructive/10"
-                  onClick={() => marcarMoraComoCubierta(deuda)}
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                  Ya está al día (no registrar pago)
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                      Ya está al día (no registrar pago)
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Marcar {deuda.nombre} como al día?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Se dejará de avisar por la mora de este ciclo sin registrar ningún pago. Úsalo
+                        solo si el saldo ya refleja el pago; si todavía no has pagado, la deuda seguirá
+                        impaga y la app dejará de advertírtelo.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => marcarMoraComoCubierta(deuda)}>
+                        Sí, está al día
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </AlertDescription>
             </Alert>
           ))}

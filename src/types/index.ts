@@ -125,7 +125,6 @@ export interface MetaAhorro {
   notas?: string;
   created_at?: string;
   updated_at?: string;
-  estado?: string;
 }
 
 export interface CategoriaPersonalizada {

@@ -14,7 +14,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   deudas: Deuda[];
   deudaPreseleccionada?: Deuda | null;
-  onSubmit?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<any>;
+  onSubmit?: (p: Omit<PagoDeuda, "id" | "user_id" | "created_at">) => Promise<unknown>;
 }
 
 export default function ReportarPagoDialog({ open, onOpenChange, deudas, deudaPreseleccionada, onSubmit }: Props) {
@@ -40,6 +40,16 @@ export default function ReportarPagoDialog({ open, onOpenChange, deudas, deudaPr
     if (!onSubmit || !deudaId) return;
     if (!monto || monto <= 0) {
       toast.error("El monto debe ser mayor a 0");
+      return;
+    }
+    // Un pago mayor al saldo no se puede representar: el saldo se recorta en 0 y el excedente
+    // se pierde, de modo que borrar ese pago después devuelve más de lo que se descontó y deja
+    // deuda que no existe. Mejor avisar antes de guardar.
+    if (deudaSeleccionada && monto > deudaSeleccionada.saldoActual) {
+      toast.error(
+        `El pago supera el saldo de ${deudaSeleccionada.nombre} ` +
+          `(${deudaSeleccionada.saldoActual.toLocaleString("es-CO")}). Ajusta el monto.`,
+      );
       return;
     }
 
@@ -73,7 +83,16 @@ export default function ReportarPagoDialog({ open, onOpenChange, deudas, deudaPr
                 <Select value={deudaId} onValueChange={setDeudaId}>
                   <SelectTrigger id="deudaSelect"><SelectValue placeholder="Seleccionar deuda..." /></SelectTrigger>
                   <SelectContent>
-                    {deudas.map((d) => <SelectItem key={d.id} value={d.id}>{d.nombre}</SelectItem>)}
+                    {/* Una deuda con saldo 0 no admite más pagos: registrarlos recortaba el saldo
+                        a 0 otra vez y el dinero desaparecía del sistema sin dejar rastro. */}
+                    {deudas
+                      .filter((d) => d.saldoActual > 0 || d.id === deudaPreseleccionada?.id)
+                      .map((d) => (
+                        <SelectItem key={d.id} value={d.id} disabled={d.saldoActual <= 0}>
+                          {d.nombre}
+                          {d.saldoActual <= 0 ? " (saldada)" : ""}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>

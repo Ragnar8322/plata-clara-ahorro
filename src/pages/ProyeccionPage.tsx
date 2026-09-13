@@ -2,6 +2,7 @@ import { useState, useMemo, Fragment } from "react";
 import { Deuda, Configuracion, EstrategiaOrden, ResultadoSimulacion } from "../types";
 import { simularBolaDeNieve } from "@/services/snowballCalculator";
 import { formatMoney } from "@/lib/formatters";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
@@ -44,10 +45,17 @@ export default function ProyeccionPage({ deudas, config }: Props) {
 
   const calcular = () => {
     if (deudasActivas.length === 0) return;
+    // Con el campo vacio, Number("") daba 0: la simulacion salia sin meses y las graficas
+    // aparecian en blanco sin ningun mensaje.
+    const meses = Number(mesesMax);
+    if (!Number.isFinite(meses) || meses < 1) {
+      toast.error("Indica cuantos meses quieres proyectar (minimo 1).");
+      return;
+    }
     const res = simularBolaDeNieve(
       deudas,
       presupuesto ?? 0,
-      Number(mesesMax),
+      Math.min(meses, 600),
       estrategia,
       fechaInicio
     );
@@ -56,6 +64,16 @@ export default function ProyeccionPage({ deudas, config }: Props) {
 
   const totalMinimos = deudasActivas.reduce((s, d) => s + d.pagoMinimoMensual, 0);
   const presupuestoInsuficiente = (presupuesto ?? 0) < totalMinimos;
+
+  // Interes mensual devengado por el conjunto de deudas: si el presupuesto no lo cubre, el saldo
+  // total crece cada mes y la deuda no termina nunca. Antes el unico indicio era un escueto
+  // "No se alcanza en el rango simulado".
+  const interesMensualTotal = deudasActivas.reduce(
+    (s, d) => s + d.saldoActual * (Math.pow(1 + d.tasaInteresAnual / 100, 1 / 12) - 1),
+    0,
+  );
+  const presupuestoNoCubreIntereses =
+    (presupuesto ?? 0) > 0 && (presupuesto ?? 0) <= interesMensualTotal;
 
   const dataGraficoBalance = useMemo(() => {
     if (!resultado) return [];
@@ -135,6 +153,13 @@ export default function ProyeccionPage({ deudas, config }: Props) {
               {presupuestoInsuficiente && (
                 <p className="text-xs text-destructive mt-1">
                   El presupuesto es menor que los pagos mínimos ({formatMoney(totalMinimos, config)}).
+                </p>
+              )}
+              {presupuestoNoCubreIntereses && (
+                <p className="text-xs text-destructive mt-1 font-medium">
+                  Con este presupuesto tus deudas crecen: solo los intereses suman{" "}
+                  {formatMoney(interesMensualTotal, config)} al mes. Necesitas abonar más que esa
+                  cifra para que el saldo baje.
                 </p>
               )}
             </div>

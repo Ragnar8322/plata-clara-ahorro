@@ -166,7 +166,7 @@ describe("storage.ts — Gastos", () => {
   });
 
   it("updateGasto maps fields and filters by id, resolving to void on success", async () => {
-    const builder = mockFrom({ data: null, error: null });
+    const builder = mockFrom({ data: [{ id: "g1" }], error: null });
     const gasto: Gasto = {
       id: "g1",
       fecha: "2026-03-01",
@@ -195,13 +195,37 @@ describe("storage.ts — Gastos", () => {
   });
 
   it("deleteGasto deletes by id and throws on Supabase error", async () => {
-    const builder = mockFrom({ data: null, error: null });
+    const builder = mockFrom({ data: [{ id: "g1" }], error: null });
     await deleteGasto("g1");
     expect(supabase.from).toHaveBeenCalledWith("gastos");
     expect(builder.eq).toHaveBeenCalledWith("id", "g1");
 
     mockFrom({ data: null, error: { message: "delete failed" } });
     await expect(deleteGasto("g1")).rejects.toEqual({ message: "delete failed" });
+  });
+
+  // PostgREST answers 204 with error:null when no row matched (expired session, RLS,
+  // row already deleted elsewhere). Without this guard the UI confirms writes that
+  // never happened, so "no rows returned" must surface as a failure.
+  it("updateGasto throws when the write matched no rows", async () => {
+    mockFrom({ data: [], error: null });
+    const gasto: Gasto = {
+      id: "ghost",
+      fecha: "2026-03-01",
+      categoria: "Salud",
+      descripcion: "Consulta",
+      monto: 80000,
+      metodoPago: "Débito",
+      tipo: "Variable",
+      frecuencia: "Único",
+    };
+
+    await expect(updateGasto(gasto)).rejects.toThrow(/ya no existe o tu sesión expiró/);
+  });
+
+  it("deleteGasto throws when the delete matched no rows", async () => {
+    mockFrom({ data: [], error: null });
+    await expect(deleteGasto("ghost")).rejects.toThrow(/ya no existe o tu sesión expiró/);
   });
 });
 
@@ -302,7 +326,7 @@ describe("storage.ts — Deudas", () => {
   });
 
   it("updateDeuda maps fields and filters by id", async () => {
-    const builder = mockFrom({ data: null, error: null });
+    const builder = mockFrom({ data: [{ id: "d1" }], error: null });
     const deuda: Deuda = {
       id: "d1",
       nombre: "Visa",

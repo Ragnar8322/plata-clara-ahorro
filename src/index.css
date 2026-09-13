@@ -122,6 +122,24 @@
   }
 }
 
+/* El reporte se renderiza dentro del Layout. Al imprimir sobran la cabecera, la navegación y
+   los controles flotantes: antes salían todos sobre el papel. */
+@media print {
+  header,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+}
+
 @media (prefers-contrast: more) {
   .glass {
     background-color: hsl(var(--card));

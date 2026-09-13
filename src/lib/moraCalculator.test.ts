@@ -99,6 +99,52 @@ describe("calcularDiasMora", () => {
     const hoy = new Date(2026, 2, 25); // corte vigente = 15 marzo, reconocido solo hasta 15 feb
     expect(calcularDiasMora(deuda, [], hoy)).toBe(10);
   });
+
+  // ─── Regresiones de la auditoría ───
+
+  it("no reporta mora cuando se pagó dentro del ciclo pero antes del día de corte", () => {
+    const deuda = makeDeuda({ diaCorteOPago: 15, pagoMinimoMensual: 50_000 });
+    const pagos = [makePago({ fecha: "2026-03-10", monto: 50_000 })];
+    const hoy = new Date(2026, 2, 20); // 20 marzo 2026
+
+    // Pagar el 10 con corte el 15 es pagar ANTES de la fecha límite, no con 5 días de atraso.
+    expect(calcularDiasMora(deuda, pagos, hoy)).toBe(0);
+  });
+
+  it("sigue reportando mora si el último pago fue del ciclo anterior", () => {
+    const deuda = makeDeuda({ diaCorteOPago: 15, pagoMinimoMensual: 50_000 });
+    const pagos = [makePago({ fecha: "2026-02-10", monto: 50_000 })];
+    const hoy = new Date(2026, 2, 20);
+
+    expect(calcularDiasMora(deuda, pagos, hoy)).toBeGreaterThan(0);
+  });
+
+  it("un abono simbólico no cubre la cuota mínima del ciclo", () => {
+    const deuda = makeDeuda({ diaCorteOPago: 15, pagoMinimoMensual: 50_000 });
+    const pagos = [makePago({ fecha: "2026-03-16", monto: 1 })];
+    const hoy = new Date(2026, 2, 20);
+
+    expect(calcularDiasMora(deuda, pagos, hoy)).toBeGreaterThan(0);
+  });
+
+  it("suma varios abonos del ciclo para decidir si se cubrió el mínimo", () => {
+    const deuda = makeDeuda({ diaCorteOPago: 15, pagoMinimoMensual: 50_000 });
+    const pagos = [
+      makePago({ id: "p1", fecha: "2026-03-05", monto: 30_000 }),
+      makePago({ id: "p2", fecha: "2026-03-12", monto: 20_000 }),
+    ];
+    const hoy = new Date(2026, 2, 20);
+
+    expect(calcularDiasMora(deuda, pagos, hoy)).toBe(0);
+  });
+
+  it("maneja el cambio de año al retroceder al corte anterior", () => {
+    const deuda = makeDeuda({ diaCorteOPago: 15, pagoMinimoMensual: 50_000 });
+    const pagos = [makePago({ fecha: "2026-01-05", monto: 50_000 })];
+    const hoy = new Date(2026, 0, 20); // 20 enero 2026; el ciclo abrió el 15 de diciembre
+
+    expect(calcularDiasMora(deuda, pagos, hoy)).toBe(0);
+  });
 });
 
 describe("fechaUltimoCorte", () => {

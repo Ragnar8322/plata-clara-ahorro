@@ -15,8 +15,17 @@ const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputProps>(
         : Number(value).toLocaleString("es-CO");
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const digits = e.target.value.replace(/\D/g, "");
-      onChange(digits ? Number(digits) : undefined);
+      // Formato colombiano: "." separa miles y "," decimales. Borrar todo lo que no fuese dígito
+      // convertía "1.500,50" en 150.050 (cien veces más). Se descartan los separadores de miles
+      // y se conserva la parte decimal.
+      const limpio = e.target.value.replace(/\./g, "").replace(",", ".").replace(/[^\d.]/g, "");
+      if (!limpio) {
+        onChange(undefined);
+        return;
+      }
+      const valor = Number(limpio);
+      if (!Number.isFinite(valor) || valor > Number.MAX_SAFE_INTEGER) return;
+      onChange(valor);
     };
 
     return (

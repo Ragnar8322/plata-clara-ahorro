@@ -80,7 +80,8 @@ describe("exportToCSV", () => {
     const contenido = ultimoCsv(blobSpy);
     const lineas = contenido.split("\n");
 
-    expect(lineas[0]).toBe("nombre,monto,categoria");
+    // El archivo abre con el BOM UTF-8 para que Excel en Windows no rompa los acentos.
+    expect(lineas[0]).toBe("\ufeffnombre,monto,categoria");
   });
 
   it("crea el link, lo agrega al body, hace click y lo remueve", () => {
@@ -98,5 +99,23 @@ describe("exportToCSV", () => {
     const lineas = contenido.split("\n");
 
     expect(lineas[1]).toBe(',,"x"');
+  });
+  it("neutraliza fórmulas para que Excel no las ejecute al abrir el archivo", () => {
+    exportToCSV([{ descripcion: '=HYPERLINK("http://mal.co","Reembolso")', monto: 1000 }], "gastos");
+
+    const contenido = ultimoCsv(blobSpy);
+
+    // El apóstrofo inicial hace que la hoja de cálculo lo trate como texto.
+    expect(contenido).toContain(`"'=HYPERLINK`);
+    expect(contenido).not.toContain('"=HYPERLINK');
+  });
+
+  it("incluye columnas que solo aparecen en filas posteriores", () => {
+    exportToCSV([{ nombre: "A" }, { nombre: "B", notas: "con nota" }], "gastos");
+
+    const contenido = ultimoCsv(blobSpy);
+
+    expect(contenido.split("\n")[0]).toContain("notas");
+    expect(contenido).toContain('"con nota"');
   });
 });

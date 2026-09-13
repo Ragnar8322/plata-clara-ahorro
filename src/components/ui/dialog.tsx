@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const DialogOpenContext = React.createContext(false);
 
-interface DialogProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root> {}
+type DialogProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.Root>;
 
 const Dialog = ({ open, defaultOpen, onOpenChange, children, ...props }: DialogProps) => {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(defaultOpen ?? false);

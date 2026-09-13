@@ -26,6 +26,15 @@ function ultimoCorte(diaCorteOPago: number, hoy: Date): Date {
   return new Date(anioAnterior, mesAnterior, diaCorteMesAnterior);
 }
 
+/**
+ * Corte inmediatamente anterior a `corte`, es decir el inicio del ciclo que ese corte cierra.
+ */
+function corteAnterior(diaCorteOPago: number, corte: Date): Date {
+  const mes = corte.getMonth() === 0 ? 11 : corte.getMonth() - 1;
+  const anio = corte.getMonth() === 0 ? corte.getFullYear() - 1 : corte.getFullYear();
+  return new Date(anio, mes, Math.min(diaCorteOPago, diasEnMes(anio, mes)));
+}
+
 function diferenciaDias(a: Date, b: Date): number {
   const msPorDia = 1000 * 60 * 60 * 24;
   return Math.round((a.getTime() - b.getTime()) / msPorDia);
@@ -56,13 +65,21 @@ export function calcularDiasMora(deuda: Deuda, pagos: PagoDeuda[], hoy: Date = n
 
   if (deuda.moraReconocidaHasta && deuda.moraReconocidaHasta >= formatFecha(corte)) return 0;
 
-  const pagadoDesdeElCorte = pagos.some((p) => {
-    if (p.deuda_id !== deuda.id) return false;
-    const [anio, mes, dia] = p.fecha.split("-").map(Number);
-    return new Date(anio, mes - 1, dia) >= corte;
-  });
+  // La ventana válida es el ciclo que este corte cierra, no solo lo posterior al corte: un pago
+  // hecho dentro del ciclo pero antes del día de corte (es decir, pagando antes de la fecha
+  // límite) quedaba invisible y la deuda se reportaba en mora por haber pagado a tiempo.
+  const inicioCiclo = corteAnterior(deuda.diaCorteOPago, corte);
 
-  if (pagadoDesdeElCorte) return 0;
+  const abonadoEnElCiclo = pagos.reduce((suma, p) => {
+    if (p.deuda_id !== deuda.id) return suma;
+    const [anio, mes, dia] = p.fecha.split("-").map(Number);
+    return new Date(anio, mes - 1, dia) >= inicioCiclo ? suma + p.monto : suma;
+  }, 0);
+
+  // Con cuota mínima definida, un abono simbólico no cubre el ciclo; antes cualquier pago de $1
+  // bastaba para dar la deuda por al día.
+  const minimoExigido = deuda.pagoMinimoMensual > 0 ? deuda.pagoMinimoMensual : Number.MIN_VALUE;
+  if (abonadoEnElCiclo >= minimoExigido) return 0;
 
   const hoySinHora = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
   const dias = diferenciaDias(hoySinHora, corte);
