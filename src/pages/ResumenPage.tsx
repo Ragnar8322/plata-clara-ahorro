@@ -323,8 +323,8 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`text-4xl font-black ${scoreTextClass}`}>{healthScore}</span>
-                <span className="text-[10px] uppercase font-bold text-muted-foreground">Score</span>
+                <span className={`text-4xl font-black tracking-tight leading-none ${scoreTextClass}`}>{healthScore}</span>
+                <span className="text-[10px] uppercase tracking-wide font-bold text-muted-foreground">Score</span>
               </div>
             </div>
 
@@ -350,15 +350,15 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
                   return (
                     <>
                       <div className={`p-2 rounded-lg border ${pillClass(ahorroOk)}`}>
-                        <p className="text-[10px] uppercase text-muted-foreground">Ahorro</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Ahorro</p>
                         <p className="font-bold text-sm">{ahorroOk ? "✓ OK" : "⚠ BAJO"}</p>
                       </div>
                       <div className={`p-2 rounded-lg border ${pillClass(deudaOk)}`}>
-                        <p className="text-[10px] uppercase text-muted-foreground">Deuda</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Deuda</p>
                         <p className="font-bold text-sm">{deudaOk ? "✓ BAJA" : "⚠ ALTA"}</p>
                       </div>
                       <div className={`p-2 rounded-lg border ${pillClass(metasOk)}`}>
-                        <p className="text-[10px] uppercase text-muted-foreground">Metas</p>
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Metas</p>
                         <p className="font-bold text-sm">{metasOk ? "✓ ACTIVA" : "⚠ NINGUNA"}</p>
                       </div>
                     </>

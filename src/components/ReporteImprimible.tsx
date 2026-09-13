@@ -63,7 +63,7 @@ export default function ReporteImprimible({
             <CardTitle className="text-xs uppercase tracking-wider text-slate-500">Score de Salud</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center pt-2">
-            <span className="text-6xl font-black text-primary">{healthScore}</span>
+            <span className="text-6xl font-black tracking-tight leading-none text-primary">{healthScore}</span>
             <span className="text-sm font-bold mt-2 px-3 py-1 bg-primary/10 rounded-full text-primary">
               {healthScore >= 80 ? "Excelente" : healthScore >= 60 ? "Saludable" : healthScore >= 40 ? "Regular" : "Crítico"}
             </span>
