@@ -38,7 +38,7 @@ const AlertDialogPortal = AlertDialogPrimitive.Portal;
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, ...props }, ref) => {
+>(({ className, children, ...props }, ref) => {
   const open = React.useContext(AlertDialogOpenContext);
   const reduceMotion = useReducedMotion();
 
@@ -70,7 +70,9 @@ const AlertDialogContent = React.forwardRef<
                   ? { duration: 0.1, ease: "easeOut" }
                   : { type: "spring", bounce: 0, duration: 0.35 }
               }
-            />
+            >
+              {children}
+            </motion.div>
           </AlertDialogPrimitive.Content>,
         ]}
       </AnimatePresence>
