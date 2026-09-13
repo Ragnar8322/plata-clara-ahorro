@@ -93,5 +93,39 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-optical-sizing: auto;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 300ms ease, color 300ms ease;
+  }
+}
+
+@layer utilities {
+  /* Translucent chrome: a floating material layer, not an opaque bar */
+  .glass {
+    @apply bg-card/70 backdrop-blur-xl backdrop-saturate-150;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background-color: hsl(var(--card));
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .glass {
+    background-color: hsl(var(--card));
+    backdrop-filter: none;
+    border-color: hsl(var(--foreground) / 0.3);
   }
 }
