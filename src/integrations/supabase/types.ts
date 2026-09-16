@@ -208,7 +208,9 @@ export type Database = {
         Row: {
           categoria: string | null
           created_at: string | null
-          frecuencia: string | null
+          dia_pago: number | null
+          dia_pago_2: number | null
+          frecuencia: string
           id: string
           monto: number
           nombre: string
@@ -217,7 +219,9 @@ export type Database = {
         Insert: {
           categoria?: string | null
           created_at?: string | null
-          frecuencia?: string | null
+          dia_pago?: number | null
+          dia_pago_2?: number | null
+          frecuencia?: string
           id?: string
           monto?: number
           nombre: string
@@ -226,7 +230,9 @@ export type Database = {
         Update: {
           categoria?: string | null
           created_at?: string | null
-          frecuencia?: string | null
+          dia_pago?: number | null
+          dia_pago_2?: number | null
+          frecuencia?: string
           id?: string
           monto?: number
           nombre?: string

@@ -1,8 +1,5 @@
 import { Deuda, PagoDeuda } from "@/types";
-
-function diasEnMes(anio: number, mes: number): number {
-  return new Date(anio, mes + 1, 0).getDate();
-}
+import { diasEnMes } from "@/lib/fechas";
 
 /**
  * Devuelve la fecha de corte del ciclo vigente: el día `diaCorteOPago` del mes

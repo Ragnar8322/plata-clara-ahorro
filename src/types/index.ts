@@ -170,5 +170,9 @@ export interface Ingreso {
   categoria?: string;
   /** Periodicidad con la que se recibe `monto`. El equivalente mensual se calcula en `lib/ingresos`. */
   frecuencia: FrecuenciaIngreso;
+  /** Día del mes en que entra el pago (el primero, si la frecuencia es quincenal). */
+  dia_pago?: number;
+  /** Día del segundo pago del mes. Solo aplica a la frecuencia quincenal. */
+  dia_pago_2?: number;
   created_at?: string;
 }
