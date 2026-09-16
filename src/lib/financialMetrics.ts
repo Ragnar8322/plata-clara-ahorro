@@ -1,5 +1,6 @@
 import { Deuda, Ingreso, MetaAhorro, Gasto } from "@/types";
 import { metaEnPlan } from "@/lib/metaEstado";
+import { ingresoMensualEfectivo } from "@/lib/ingresos";
 
 /**
  * Calcula el Score de Salud Financiera (0-100)
@@ -20,10 +21,7 @@ export function calculateHealthScore(
   const safeMetas = metas || [];
   const safeGastos = gastos || [];
 
-  // El respaldo a la configuración se activa cuando no hay ingresos registrados *o* cuando suman
-  // cero: antes bastaba una fuente en $0 para anular el ingreso configurado y hundir el score.
-  const sumaIngresos = safeIngresos.reduce((s, i) => s + (i.monto || 0), 0);
-  const ingresoTotal = sumaIngresos > 0 ? sumaIngresos : Math.max(ingresoMensualNeto || 0, 0);
+  const ingresoTotal = ingresoMensualEfectivo(safeIngresos, ingresoMensualNeto);
   const tieneIngreso = ingresoTotal > 0;
 
   const totalMinimos = safeDeudas

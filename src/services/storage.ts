@@ -443,6 +443,7 @@ export async function deletePresupuesto(id: string): Promise<void> {
 
 // ─── Ingresos (Múltiples Fuentes) ───
 import { Ingreso } from "@/types";
+import { normalizarFrecuencia } from "@/lib/ingresos";
 
 export async function loadIngresos(): Promise<Ingreso[]> {
   const { data, error } = await supabase
@@ -458,7 +459,7 @@ export async function loadIngresos(): Promise<Ingreso[]> {
     nombre: row.nombre,
     monto: Number(row.monto),
     categoria: row.categoria ?? undefined,
-    frecuencia: row.frecuencia ?? undefined,
+    frecuencia: normalizarFrecuencia(row.frecuencia),
     created_at: row.created_at ?? undefined,
   }));
 }
@@ -481,7 +482,7 @@ export async function saveIngreso(ingreso: Omit<Ingreso, "id" | "user_id" | "cre
     ...data,
     monto: Number(data.monto),
     categoria: data.categoria ?? undefined,
-    frecuencia: data.frecuencia ?? undefined,
+    frecuencia: normalizarFrecuencia(data.frecuencia),
     created_at: data.created_at ?? undefined,
   };
 }

@@ -115,6 +115,7 @@ function AppContent() {
               onDeletePresupuesto={deletePresupuesto}
               ingresos={ingresos}
               onAddIngreso={addIngreso}
+              onUpdateIngreso={updateIngreso}
               onDeleteIngreso={deleteIngreso}
               gastos={gastos}
               deudas={deudas}
@@ -146,6 +147,7 @@ function AppContent() {
             onDeletePresupuesto={deletePresupuesto}
             ingresos={ingresos}
             onAddIngreso={addIngreso}
+            onUpdateIngreso={updateIngreso}
             onDeleteIngreso={deleteIngreso}
             gastos={gastos}
             deudas={deudas}

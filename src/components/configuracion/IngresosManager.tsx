@@ -1,38 +1,103 @@
 import { useState } from "react";
-import { Ingreso, Configuracion } from "@/types";
+import {
+  Ingreso, Configuracion, FrecuenciaIngreso, FRECUENCIAS_INGRESO, CATEGORIAS_INGRESO,
+} from "@/types";
 import { formatMoney } from "@/lib/formatters";
+import {
+  montoMensualEquivalente, totalIngresoMensual, DESCRIPCION_FRECUENCIA,
+} from "@/lib/ingresos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CurrencyInput } from "@/components/ui/currency-input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Banknote } from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { Plus, Trash2, Banknote, Pencil, Save, X } from "lucide-react";
+import { toast } from "sonner";
 
 interface Props {
   ingresos: Ingreso[];
   config: Configuracion;
   onAdd: (ing: Omit<Ingreso, "id" | "user_id" | "created_at">) => Promise<unknown>;
+  onUpdate?: (ing: Ingreso) => Promise<unknown>;
   onDelete: (id: string) => Promise<unknown>;
 }
 
-export default function IngresosManager({ ingresos, config, onAdd, onDelete }: Props) {
-  const [nuevoNombre, setNuevoNombre] = useState("");
-  const [nuevoMonto, setNuevoMonto] = useState<number | undefined>(undefined);
+interface Borrador {
+  nombre: string;
+  monto: number | undefined;
+  frecuencia: FrecuenciaIngreso;
+  categoria: string;
+}
+
+const BORRADOR_VACIO: Borrador = {
+  nombre: "",
+  monto: undefined,
+  frecuencia: "Mensual",
+  categoria: "Sueldo",
+};
+
+/** Devuelve el borrador validado, o null (avisando al usuario) si falta algo. */
+function validar(borrador: Borrador): Borrador & { monto: number } | null {
+  if (!borrador.nombre.trim()) {
+    toast.error("Ponle un nombre a la fuente de ingreso");
+    return null;
+  }
+  if (!borrador.monto || borrador.monto <= 0) {
+    toast.error("El monto debe ser mayor a 0");
+    return null;
+  }
+  return { ...borrador, nombre: borrador.nombre.trim(), monto: borrador.monto };
+}
+
+export default function IngresosManager({ ingresos, config, onAdd, onUpdate, onDelete }: Props) {
+  const [nuevo, setNuevo] = useState<Borrador>(BORRADOR_VACIO);
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [edicion, setEdicion] = useState<Borrador>(BORRADOR_VACIO);
 
   const handleAdd = async () => {
-    if (!nuevoNombre || !nuevoMonto) return;
+    const valido = validar(nuevo);
+    if (!valido) return;
 
     await onAdd({
-      nombre: nuevoNombre,
-      monto: nuevoMonto,
-      categoria: "Sueldo",
-      frecuencia: "Mensual",
+      nombre: valido.nombre,
+      monto: valido.monto,
+      categoria: valido.categoria,
+      frecuencia: valido.frecuencia,
     });
 
-    setNuevoNombre("");
-    setNuevoMonto(undefined);
+    setNuevo(BORRADOR_VACIO);
   };
 
-  const totalIngresos = ingresos.reduce((sum, ing) => sum + ing.monto, 0);
+  const iniciarEdicion = (ing: Ingreso) => {
+    setEditandoId(ing.id);
+    setEdicion({
+      nombre: ing.nombre,
+      monto: ing.monto,
+      frecuencia: ing.frecuencia,
+      categoria: ing.categoria ?? "Otros",
+    });
+  };
+
+  const guardarEdicion = async (ing: Ingreso) => {
+    const valido = validar(edicion);
+    if (!valido) return;
+
+    await onUpdate?.({
+      ...ing,
+      nombre: valido.nombre,
+      monto: valido.monto,
+      categoria: valido.categoria,
+      frecuencia: valido.frecuencia,
+    });
+
+    setEditandoId(null);
+  };
+
+  const totalMensual = totalIngresoMensual(ingresos);
 
   return (
     <Card>
@@ -43,44 +108,181 @@ export default function IngresosManager({ ingresos, config, onAdd, onDelete }: P
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
+        <p className="text-sm text-muted-foreground">
+          Registra tu salario y cualquier otra entrada. Si te pagan quincenal, escribe lo que recibes
+          en <strong>una</strong> quincena: se multiplica por 2 para calcular tu ingreso mensual.
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end p-3 rounded-lg border bg-muted/30">
+          <div className="lg:col-span-2">
+            <Label htmlFor="ingreso-nombre" className="text-xs">Nombre</Label>
             <Input
+              id="ingreso-nombre"
               placeholder="Ej: Sueldo Principal"
-              value={nuevoNombre}
-              onChange={(e) => setNuevoNombre(e.target.value)}
+              value={nuevo.nombre}
+              onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })}
             />
           </div>
-          <div className="flex-1">
-            <CurrencyInput placeholder="Monto" value={nuevoMonto} onChange={setNuevoMonto} />
+          <div>
+            <Label htmlFor="ingreso-monto" className="text-xs">Monto por pago</Label>
+            <CurrencyInput
+              id="ingreso-monto"
+              placeholder="Monto"
+              value={nuevo.monto}
+              onChange={(v) => setNuevo({ ...nuevo, monto: v })}
+            />
           </div>
-          <Button onClick={handleAdd} className="sm:w-auto w-full">
-            <Plus className="h-4 w-4 mr-2" /> Agregar
-          </Button>
+          <div>
+            <Label className="text-xs">Frecuencia</Label>
+            <Select
+              value={nuevo.frecuencia}
+              onValueChange={(v: FrecuenciaIngreso) => setNuevo({ ...nuevo, frecuencia: v })}
+            >
+              <SelectTrigger aria-label="Frecuencia"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {FRECUENCIAS_INGRESO.map((f) => (
+                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Categoría</Label>
+            <Select
+              value={nuevo.categoria}
+              onValueChange={(v) => setNuevo({ ...nuevo, categoria: v })}
+            >
+              <SelectTrigger aria-label="Categoría"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CATEGORIAS_INGRESO.map((c) => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="sm:col-span-2 lg:col-span-5 flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {DESCRIPCION_FRECUENCIA[nuevo.frecuencia]}
+              {nuevo.frecuencia === "Quincenal" && nuevo.monto
+                ? ` · equivale a ${formatMoney(nuevo.monto * 2, config)} al mes`
+                : ""}
+            </p>
+            <Button onClick={handleAdd}>
+              <Plus className="h-4 w-4 mr-2" /> Agregar
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-2">
           {ingresos.length === 0 ? (
             <p className="text-sm text-muted-foreground py-2 italic">No hay fuentes de ingreso registradas.</p>
           ) : (
-            ingresos.map((ing) => (
-              <div key={ing.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                <div>
-                  <p className="text-sm font-medium">{ing.nombre}</p>
-                  <p className="text-xs text-muted-foreground">{formatMoney(ing.monto, config)}</p>
+            ingresos.map((ing) => {
+              const enEdicion = editandoId === ing.id;
+              const mensual = montoMensualEquivalente(ing);
+
+              if (enEdicion) {
+                return (
+                  <div key={ing.id} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end p-3 rounded-lg border border-primary bg-card">
+                    <div className="lg:col-span-2">
+                      <Label className="text-xs">Nombre</Label>
+                      <Input
+                        value={edicion.nombre}
+                        onChange={(e) => setEdicion({ ...edicion, nombre: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Monto por pago</Label>
+                      <CurrencyInput
+                        value={edicion.monto}
+                        onChange={(v) => setEdicion({ ...edicion, monto: v })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Frecuencia</Label>
+                      <Select
+                        value={edicion.frecuencia}
+                        onValueChange={(v: FrecuenciaIngreso) => setEdicion({ ...edicion, frecuencia: v })}
+                      >
+                        <SelectTrigger aria-label="Frecuencia"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {FRECUENCIAS_INGRESO.map((f) => (
+                            <SelectItem key={f} value={f}>{f}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Categoría</Label>
+                      <Select
+                        value={edicion.categoria}
+                        onValueChange={(v) => setEdicion({ ...edicion, categoria: v })}
+                      >
+                        <SelectTrigger aria-label="Categoría"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {CATEGORIAS_INGRESO.map((c) => (
+                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="sm:col-span-2 lg:col-span-5 flex justify-end gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => setEditandoId(null)}>
+                        <X className="h-4 w-4 mr-1" /> Cancelar
+                      </Button>
+                      <Button size="sm" onClick={() => guardarEdicion(ing)}>
+                        <Save className="h-4 w-4 mr-1" /> Guardar
+                      </Button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={ing.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium flex items-center gap-2 flex-wrap">
+                      {ing.nombre}
+                      <Badge variant="secondary" className="text-[10px] font-normal">{ing.categoria ?? "Otros"}</Badge>
+                      <Badge variant="outline" className="text-[10px] font-normal">{ing.frecuencia}</Badge>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatMoney(ing.monto, config)} por pago
+                      {ing.frecuencia === "Quincenal" && ` · ${formatMoney(mensual, config)} al mes`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {onUpdate && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8"
+                        aria-label={`Editar ${ing.nombre}`}
+                        onClick={() => iniciarEdicion(ing)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-destructive"
+                      aria-label={`Eliminar ${ing.nombre}`}
+                      onClick={() => onDelete(ing.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => onDelete(ing.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
         {ingresos.length > 0 && (
           <div className="pt-2 border-t flex justify-between items-center">
-            <span className="text-sm font-semibold">Total Mensual:</span>
-            <span className="text-lg font-bold text-primary">{formatMoney(totalIngresos, config)}</span>
+            <span className="text-sm font-semibold">Ingreso mensual total:</span>
+            <span className="text-lg font-bold text-primary">{formatMoney(totalMensual, config)}</span>
           </div>
         )}
       </CardContent>

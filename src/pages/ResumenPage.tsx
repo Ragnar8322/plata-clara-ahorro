@@ -15,6 +15,7 @@ import { calculateHealthScore } from "@/lib/financialMetrics";
 import { calcularDiasMora, fechaUltimoCorte } from "@/lib/moraCalculator";
 import { recomendarProximaDeuda } from "@/lib/deudaPriorizacion";
 import { metaEnPlan } from "@/lib/metaEstado";
+import { ingresoMensualEfectivo } from "@/lib/ingresos";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -55,12 +56,10 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
   const totalDeudas = useMemo(() => deudasActivas.reduce((s, d) => s + d.saldoActual, 0), [deudasActivas]);
   const totalMinimos = useMemo(() => deudasActivas.reduce((s, d) => s + d.pagoMinimoMensual, 0), [deudasActivas]);
 
-  // El respaldo al ingreso configurado se aplica también cuando las fuentes registradas suman
-  // cero: antes bastaba añadir una fuente en $0 para que el ingreso de toda la app pasara a 0.
-  const ingresoMensualTotal = useMemo(() => {
-    const suma = ingresos.reduce((sum, ing) => sum + ing.monto, 0);
-    return suma > 0 ? suma : config.ingresoMensualNeto;
-  }, [ingresos, config.ingresoMensualNeto]);
+  const ingresoMensualTotal = useMemo(
+    () => ingresoMensualEfectivo(ingresos, config.ingresoMensualNeto),
+    [ingresos, config.ingresoMensualNeto]
+  );
 
   const margen = ingresoMensualTotal - totalGastosMes - totalMinimos;
 

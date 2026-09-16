@@ -5,6 +5,7 @@ import { Gasto, Deuda, Configuracion, MetaAhorro, PresupuestoCategoria, Ingreso,
 import { formatMoney } from "@/lib/formatters";
 import { metaEnPlan } from "@/lib/metaEstado";
 import { recomendarProximaDeuda } from "@/lib/deudaPriorizacion";
+import { ingresoMensualEfectivo } from "@/lib/ingresos";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -33,10 +34,10 @@ export default function ReporteImprimible({
     gastos.filter(g => g.fecha.startsWith(mesKey)).reduce((s, g) => s + g.monto, 0)
   , [gastos, mesKey]);
 
-  const totalIngresos = useMemo(() => {
-    const suma = ingresos.reduce((s, i) => s + i.monto, 0);
-    return suma > 0 ? suma : config.ingresoMensualNeto;
-  }, [ingresos, config.ingresoMensualNeto]);
+  const totalIngresos = useMemo(
+    () => ingresoMensualEfectivo(ingresos, config.ingresoMensualNeto),
+    [ingresos, config.ingresoMensualNeto]
+  );
 
   const totalDeudas = useMemo(() => 
     deudas.filter(d => d.activa).reduce((s, d) => s + d.saldoActual, 0)

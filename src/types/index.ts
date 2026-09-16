@@ -154,12 +154,21 @@ export interface PresupuestoCategoria {
   updated_at?: string;
 }
 
+export type FrecuenciaIngreso = "Quincenal" | "Mensual" | "Variable";
+
+export const FRECUENCIAS_INGRESO: FrecuenciaIngreso[] = ["Quincenal", "Mensual", "Variable"];
+
+export const CATEGORIAS_INGRESO = [
+  "Sueldo", "Freelance", "Arriendo", "Inversión", "Pensión", "Otros",
+];
+
 export interface Ingreso {
   id: string;
   user_id?: string;
   nombre: string;
   monto: number;
   categoria?: string;
-  frecuencia?: string;
+  /** Periodicidad con la que se recibe `monto`. El equivalente mensual se calcula en `lib/ingresos`. */
+  frecuencia: FrecuenciaIngreso;
   created_at?: string;
 }

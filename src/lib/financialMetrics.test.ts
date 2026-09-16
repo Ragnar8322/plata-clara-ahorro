@@ -7,6 +7,7 @@ function makeIngreso(overrides: Partial<Ingreso> = {}): Ingreso {
     id: "ing-1",
     nombre: "Salario",
     monto: 1000000,
+    frecuencia: "Mensual",
     ...overrides,
   };
 }

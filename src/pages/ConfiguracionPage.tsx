@@ -41,6 +41,7 @@ interface Props {
   onDeletePresupuesto?: (id: string) => Promise<unknown>;
   ingresos?: Ingreso[];
   onAddIngreso?: (ing: Omit<Ingreso, "id" | "user_id" | "created_at">) => Promise<unknown>;
+  onUpdateIngreso?: (ing: Ingreso) => Promise<unknown>;
   onDeleteIngreso?: (id: string) => Promise<unknown>;
   gastos?: Gasto[];
   deudas?: Deuda[];
@@ -49,7 +50,7 @@ interface Props {
 export default function ConfiguracionPage({ 
   config, onUpdate, categorias = [], addCategoria, deleteCategoria,
   presupuestos = [], onSavePresupuesto, onDeletePresupuesto,
-  ingresos = [], onAddIngreso, onDeleteIngreso,
+  ingresos = [], onAddIngreso, onUpdateIngreso, onDeleteIngreso,
   gastos = [], deudas = []
 }: Props) {
   const { register, handleSubmit, control, reset, formState: { errors } } = useForm<FormValues>({
@@ -197,6 +198,7 @@ export default function ConfiguracionPage({
               ingresos={ingresos}
               config={config}
               onAdd={onAddIngreso}
+              onUpdate={onUpdateIngreso}
               onDelete={onDeleteIngreso}
             />
           </div>
