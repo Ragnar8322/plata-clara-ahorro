@@ -460,8 +460,6 @@ export async function loadIngresos(): Promise<Ingreso[]> {
     monto: Number(row.monto),
     categoria: row.categoria ?? undefined,
     frecuencia: normalizarFrecuencia(row.frecuencia),
-    dia_pago: row.dia_pago ?? undefined,
-    dia_pago_2: row.dia_pago_2 ?? undefined,
     created_at: row.created_at ?? undefined,
   }));
 }
@@ -475,8 +473,6 @@ export async function saveIngreso(ingreso: Omit<Ingreso, "id" | "user_id" | "cre
       monto: ingreso.monto,
       categoria: ingreso.categoria,
       frecuencia: ingreso.frecuencia,
-      dia_pago: ingreso.dia_pago ?? null,
-      dia_pago_2: ingreso.dia_pago_2 ?? null,
     })
     .select()
     .single();
@@ -487,8 +483,6 @@ export async function saveIngreso(ingreso: Omit<Ingreso, "id" | "user_id" | "cre
     monto: Number(data.monto),
     categoria: data.categoria ?? undefined,
     frecuencia: normalizarFrecuencia(data.frecuencia),
-    dia_pago: data.dia_pago ?? undefined,
-    dia_pago_2: data.dia_pago_2 ?? undefined,
     created_at: data.created_at ?? undefined,
   };
 }
@@ -501,8 +495,6 @@ export async function updateIngreso(ingreso: Ingreso): Promise<void> {
       monto: ingreso.monto,
       categoria: ingreso.categoria,
       frecuencia: ingreso.frecuencia,
-      dia_pago: ingreso.dia_pago ?? null,
-      dia_pago_2: ingreso.dia_pago_2 ?? null,
     })
     .eq("id", ingreso.id)
     .select();

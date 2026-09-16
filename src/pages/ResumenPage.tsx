@@ -15,9 +15,7 @@ import { calculateHealthScore } from "@/lib/financialMetrics";
 import { calcularDiasMora, fechaUltimoCorte } from "@/lib/moraCalculator";
 import { recomendarProximaDeuda } from "@/lib/deudaPriorizacion";
 import { metaEnPlan } from "@/lib/metaEstado";
-import {
-  ingresoMensualEfectivo, totalRecibidoEsteMes, conteoPagosDelMes, proximoDiaDePago,
-} from "@/lib/ingresos";
+import { ingresoMensualEfectivo } from "@/lib/ingresos";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -64,17 +62,6 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
   );
 
   const margen = ingresoMensualTotal - totalGastosMes - totalMinimos;
-
-  // "Disponible hoy" solo compara dinero real: lo que ya entró contra lo que ya salió. Restar aquí
-  // los mínimos proyectados de deuda enfrentaría un mes completo de cuotas contra una sola quincena.
-  const recibidoHastaHoy = useMemo(() => totalRecibidoEsteMes(ingresos, now), [ingresos, now]);
-  const pagosDeudaDelMes = useMemo(
-    () => pagos.filter((p) => p.fecha.startsWith(mesActual)).reduce((s, p) => s + p.monto, 0),
-    [pagos, mesActual]
-  );
-  const disponibleHoy = recibidoHastaHoy - totalGastosMes - pagosDeudaDelMes;
-  const conteoPagos = useMemo(() => conteoPagosDelMes(ingresos, now), [ingresos, now]);
-  const proximoPago = useMemo(() => proximoDiaDePago(ingresos, now), [ingresos, now]);
 
   const metasActivas = useMemo(() => metas.filter(metaEnPlan), [metas]);
 
@@ -411,37 +398,14 @@ export default function ResumenPage({ gastos, deudas, metas = [], presupuestos =
         </CardContent>
       </Card>
 
-      {/* Disponible hoy: solo el dinero que ya entró este mes */}
-      {ingresos.length > 0 && (
-        <Card className="border-primary/40">
-          <CardContent className="pt-4 pb-3">
-            <p className="text-sm text-muted-foreground">
-              Recibido este mes ({formatMoney(recibidoHastaHoy, config)}) − Gastos ({formatMoney(totalGastosMes, config)}) − Pagos a deudas ({formatMoney(pagosDeudaDelMes, config)}) =
-            </p>
-            <p className={`text-2xl font-bold mt-1 ${disponibleHoy >= 0 ? "text-success" : "text-destructive"}`}>
-              {formatMoney(disponibleHoy, config)} disponible hoy
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {conteoPagos.recibidos} de {conteoPagos.totales} pagos del mes recibidos
-              {proximoPago !== null
-                ? ` · el próximo entra el día ${proximoPago}`
-                : " · ya entraron todos los de este mes"}
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Balance proyectado del mes completo */}
+      {/* Balance */}
       <Card>
         <CardContent className="pt-4 pb-3">
           <p className="text-sm text-muted-foreground">
             Ingreso ({formatMoney(ingresoMensualTotal, config)}) − Gastos ({formatMoney(totalGastosMes, config)}) − Pagos mín. deudas ({formatMoney(totalMinimos, config)}) =
           </p>
           <p className={`text-2xl font-bold mt-1 ${margen >= 0 ? "text-success" : "text-destructive"}`}>
-            {formatMoney(margen, config)} margen del mes
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Proyección con el mes completo, hayan entrado o no las quincenas.
+            {formatMoney(margen, config)} margen disponible
           </p>
         </CardContent>
       </Card>

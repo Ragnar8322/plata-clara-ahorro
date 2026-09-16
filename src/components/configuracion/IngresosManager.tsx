@@ -5,7 +5,6 @@ import {
 import { formatMoney } from "@/lib/formatters";
 import {
   montoMensualEquivalente, totalIngresoMensual, DESCRIPCION_FRECUENCIA,
-  DIA_PAGO_QUINCENA_1, DIA_PAGO_QUINCENA_2,
 } from "@/lib/ingresos";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +31,6 @@ interface Borrador {
   monto: number | undefined;
   frecuencia: FrecuenciaIngreso;
   categoria: string;
-  diaPago: number;
-  diaPago2: number;
 }
 
 const BORRADOR_VACIO: Borrador = {
@@ -41,31 +38,7 @@ const BORRADOR_VACIO: Borrador = {
   monto: undefined,
   frecuencia: "Mensual",
   categoria: "Sueldo",
-  diaPago: DIA_PAGO_QUINCENA_2,
-  diaPago2: DIA_PAGO_QUINCENA_2,
 };
-
-/** Al cambiar de frecuencia los días heredados dejan de tener sentido, así que se reinician. */
-function conFrecuencia(borrador: Borrador, frecuencia: FrecuenciaIngreso): Borrador {
-  return {
-    ...borrador,
-    frecuencia,
-    diaPago: frecuencia === "Quincenal" ? DIA_PAGO_QUINCENA_1 : DIA_PAGO_QUINCENA_2,
-    diaPago2: DIA_PAGO_QUINCENA_2,
-  };
-}
-
-/** El segundo día solo es válido en una fuente quincenal: la base rechaza guardarlo en las demás. */
-function diasParaGuardar(borrador: Borrador): Pick<Ingreso, "dia_pago" | "dia_pago_2"> {
-  switch (borrador.frecuencia) {
-    case "Variable":
-      return { dia_pago: undefined, dia_pago_2: undefined };
-    case "Mensual":
-      return { dia_pago: borrador.diaPago, dia_pago_2: undefined };
-    case "Quincenal":
-      return { dia_pago: borrador.diaPago, dia_pago_2: borrador.diaPago2 };
-  }
-}
 
 function borradorDesde(ing: Ingreso): Borrador {
   return {
@@ -73,13 +46,7 @@ function borradorDesde(ing: Ingreso): Borrador {
     monto: ing.monto,
     frecuencia: ing.frecuencia,
     categoria: ing.categoria ?? "Otros",
-    diaPago: ing.dia_pago ?? (ing.frecuencia === "Quincenal" ? DIA_PAGO_QUINCENA_1 : DIA_PAGO_QUINCENA_2),
-    diaPago2: ing.dia_pago_2 ?? DIA_PAGO_QUINCENA_2,
   };
-}
-
-function diaValido(dia: number): boolean {
-  return Number.isInteger(dia) && dia >= 1 && dia <= 31;
 }
 
 /** Devuelve el borrador saneado, o null (avisando al usuario) si falta algo. */
@@ -92,57 +59,7 @@ function validar(borrador: Borrador): (Borrador & { monto: number }) | null {
     toast.error("El monto debe ser mayor a 0");
     return null;
   }
-  if (borrador.frecuencia !== "Variable" && !diaValido(borrador.diaPago)) {
-    toast.error("El día de pago debe estar entre 1 y 31");
-    return null;
-  }
-  if (borrador.frecuencia === "Quincenal" && !diaValido(borrador.diaPago2)) {
-    toast.error("El segundo día de pago debe estar entre 1 y 31");
-    return null;
-  }
   return { ...borrador, nombre: borrador.nombre.trim(), monto: borrador.monto };
-}
-
-function DiasDePago({ borrador, onChange }: { borrador: Borrador; onChange: (b: Borrador) => void }) {
-  if (borrador.frecuencia === "Variable") {
-    return (
-      <div>
-        <Label className="text-xs">Día de pago</Label>
-        <p className="text-xs text-muted-foreground h-10 flex items-center">Disponible desde el 1</p>
-      </div>
-    );
-  }
-
-  const esQuincenal = borrador.frecuencia === "Quincenal";
-
-  return (
-    <div>
-      <Label className="text-xs">{esQuincenal ? "Días de pago" : "Día de pago"}</Label>
-      <div className="flex items-center gap-1">
-        <Input
-          type="number"
-          min={1}
-          max={31}
-          aria-label="Día de pago"
-          value={borrador.diaPago}
-          onChange={(e) => onChange({ ...borrador, diaPago: Number(e.target.value) })}
-        />
-        {esQuincenal && (
-          <>
-            <span className="text-xs text-muted-foreground">y</span>
-            <Input
-              type="number"
-              min={1}
-              max={31}
-              aria-label="Segundo día de pago"
-              value={borrador.diaPago2}
-              onChange={(e) => onChange({ ...borrador, diaPago2: Number(e.target.value) })}
-            />
-          </>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function CamposIngreso({ borrador, onChange }: { borrador: Borrador; onChange: (b: Borrador) => void }) {
@@ -169,7 +86,7 @@ function CamposIngreso({ borrador, onChange }: { borrador: Borrador; onChange: (
         <Label className="text-xs">Frecuencia</Label>
         <Select
           value={borrador.frecuencia}
-          onValueChange={(v: FrecuenciaIngreso) => onChange(conFrecuencia(borrador, v))}
+          onValueChange={(v: FrecuenciaIngreso) => onChange({ ...borrador, frecuencia: v })}
         >
           <SelectTrigger aria-label="Frecuencia"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -179,7 +96,6 @@ function CamposIngreso({ borrador, onChange }: { borrador: Borrador; onChange: (
           </SelectContent>
         </Select>
       </div>
-      <DiasDePago borrador={borrador} onChange={onChange} />
       <div>
         <Label className="text-xs">Categoría</Label>
         <Select value={borrador.categoria} onValueChange={(v) => onChange({ ...borrador, categoria: v })}>
@@ -209,7 +125,6 @@ export default function IngresosManager({ ingresos, config, onAdd, onUpdate, onD
       monto: valido.monto,
       categoria: valido.categoria,
       frecuencia: valido.frecuencia,
-      ...diasParaGuardar(valido),
     });
 
     setNuevo(BORRADOR_VACIO);
@@ -225,7 +140,6 @@ export default function IngresosManager({ ingresos, config, onAdd, onUpdate, onD
       monto: valido.monto,
       categoria: valido.categoria,
       frecuencia: valido.frecuencia,
-      ...diasParaGuardar(valido),
     });
 
     setEditandoId(null);
@@ -244,13 +158,12 @@ export default function IngresosManager({ ingresos, config, onAdd, onUpdate, onD
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
           Registra tu salario y cualquier otra entrada. Si te pagan quincenal, escribe lo que recibes
-          en <strong>una</strong> quincena y los dos días en que te consignan: el resumen irá sumando
-          cada pago al disponible conforme llegue su fecha.
+          en <strong>una</strong> quincena: se multiplica por 2 para calcular tu ingreso mensual.
         </p>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 items-end p-3 rounded-lg border bg-muted/30">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end p-3 rounded-lg border bg-muted/30">
           <CamposIngreso borrador={nuevo} onChange={setNuevo} />
-          <div className="sm:col-span-2 lg:col-span-6 flex items-center justify-between gap-3">
+          <div className="sm:col-span-2 lg:col-span-5 flex items-center justify-between gap-3">
             <p className="text-xs text-muted-foreground">
               {DESCRIPCION_FRECUENCIA[nuevo.frecuencia]}
               {nuevo.frecuencia === "Quincenal" && nuevo.monto
@@ -272,10 +185,10 @@ export default function IngresosManager({ ingresos, config, onAdd, onUpdate, onD
                 return (
                   <div
                     key={ing.id}
-                    className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6 items-end p-3 rounded-lg border border-primary bg-card"
+                    className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end p-3 rounded-lg border border-primary bg-card"
                   >
                     <CamposIngreso borrador={edicion} onChange={setEdicion} />
-                    <div className="sm:col-span-2 lg:col-span-6 flex justify-end gap-2">
+                    <div className="sm:col-span-2 lg:col-span-5 flex justify-end gap-2">
                       <Button size="sm" variant="ghost" onClick={() => setEditandoId(null)}>
                         <X className="h-4 w-4 mr-1" /> Cancelar
                       </Button>
@@ -287,12 +200,6 @@ export default function IngresosManager({ ingresos, config, onAdd, onUpdate, onD
                 );
               }
 
-              const diasTexto = ing.frecuencia === "Variable"
-                ? "sin fecha fija"
-                : ing.frecuencia === "Quincenal"
-                  ? `días ${ing.dia_pago ?? DIA_PAGO_QUINCENA_1} y ${ing.dia_pago_2 ?? DIA_PAGO_QUINCENA_2}`
-                  : `día ${ing.dia_pago ?? DIA_PAGO_QUINCENA_2}`;
-
               return (
                 <div key={ing.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border bg-card">
                   <div className="min-w-0">
@@ -302,7 +209,7 @@ export default function IngresosManager({ ingresos, config, onAdd, onUpdate, onD
                       <Badge variant="outline" className="text-[10px] font-normal">{ing.frecuencia}</Badge>
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {formatMoney(ing.monto, config)} por pago · {diasTexto}
+                      {formatMoney(ing.monto, config)} por pago
                       {ing.frecuencia === "Quincenal" && ` · ${formatMoney(montoMensualEquivalente(ing), config)} al mes`}
                     </p>
                   </div>
